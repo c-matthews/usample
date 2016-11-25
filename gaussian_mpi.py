@@ -26,7 +26,7 @@ means = np.array([0.5,-0.25])
 icov =  np.array([ [1,0.5] , [0.5,1] ])
 
 
-us = usample.UmbrellaSampler( log_prob_fn , lpfargs=[means,icov],   debug=True )
+us = usample.UmbrellaSampler( log_prob_fn , lpfargs=[means,icov], mpi=True, debug=True )
 
 #
 # Now add some umbrellas.
@@ -53,10 +53,15 @@ pos,weights,prob = us.run(10000 , freq=1000, repex=10   )
 #
 # We save the output
 #
- 
-x = np.append( pos , weights , axis=1 )
-x = np.append( x , prob , axis=1 )
 
-np.savetxt(  'x.txt' , x )
- 
+if (us.is_master() ):
+    
+    x = np.append( pos , weights , axis=1 )
+    x = np.append( x , prob , axis=1 )
+
+    np.savetxt(  'x.txt' , x )
+
+
+
+us.close_pools()
 

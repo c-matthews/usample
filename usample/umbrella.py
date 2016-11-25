@@ -24,7 +24,7 @@ def initiate_pool(i):
 
 class Umbrella:
     
-    def __init__(self,lpf,temp, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[None], samplerargs={}   ):
+    def __init__(self,lpf,temp, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[], samplerargs={}   ):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
@@ -99,7 +99,7 @@ class Umbrella:
         for (pos , prob , rstate , blobs ) in  self.sampler.sample( self.p , lnprob0=self.lnprob0 , blobs0=self.blobs0, iterations=nsteps ):
             
             self.traj_pos.append( pos.copy() )
-            self.traj_prob.append( prob - blobs  )
+            self.traj_prob.append( prob.reshape(np.shape(blobs)) - blobs  )
             self.traj_blob.append( np.array(blobs).copy() )
          
         self.p = pos

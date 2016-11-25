@@ -46,7 +46,7 @@ def PushTraj(z):
 
 class UmbrellaSampler:
     
-    def __init__(self, lpf, lpfargs=None, debug=False, evsolves=3, mpi=False):
+    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
@@ -254,7 +254,7 @@ class UmbrellaSampler:
             
            
             
-            traj_prob =  np.array(w.traj_prob)  
+            traj_prob =  np.array(w.traj_prob).squeeze()
             
             
             prob = np.append( prob , traj_prob , axis=1 )
