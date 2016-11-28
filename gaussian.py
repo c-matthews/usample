@@ -26,7 +26,7 @@ means = np.array([0.5,-0.25])
 icov =  np.array([ [1,0.5] , [0.5,1] ])
 
 
-us = usample.UmbrellaSampler( log_prob_fn , lpfargs=[means,icov],   debug=True )
+us = usample.UmbrellaSampler( log_prob_fn , lpfargs=[means,icov],   debug=True,  burn_acor=20 )
 
 #
 # Now add some umbrellas.

@@ -8,13 +8,17 @@ def g_lnprob(p , lpf , temp, lpfargs):
         
     L = lpf(p , *lpfargs ) 
     
-    bias = g_getbias( L , temp )
+    if (np.isfinite(L) ):
+        bias = g_getbias( L , temp )
+    else:
+        bias = 0
       
     return (L + bias, bias)
     
     
     
 def g_getbias( L , temp ):
+     
     
     return L * temp
     
@@ -43,6 +47,7 @@ class Umbrella:
         self.traj_blob = []
         
         self.tsteps = 0
+        self.acorval = 0
         
         self.pool = None
             
@@ -80,6 +85,10 @@ class Umbrella:
         
         return [self.traj_pos , self.traj_prob, self.traj_blob]
     
+    def get_acor(self):
+        
+        return self.acorval
+    
     def set_traj(self,z):
           
         traj_pos,traj_prob,traj_blob = z
@@ -106,8 +115,13 @@ class Umbrella:
         self.lnprob0 = prob
         self.blobs0 = blobs
         self.tsteps += nsteps 
-            
+        
         self.gr =  GetGR( np.array(self.traj_pos ) )
+        
+        try:
+            self.acorval = np.max( self.sampler.acor )
+        except:
+            self.acorval = nsteps
         
         
         

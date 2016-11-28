@@ -36,17 +36,19 @@ def stationary_distrib(F,residtol = 1.E-10,max_iter=100):
         chain stationary distribution, this is the stationary distribution.
         Normalization is chosen s.t. entries sum to one.
     
-    """
-
+    """ 
+    
     L = len(F) # Number of States
     M = np.eye(L)-F
     q,r=qr(M)
     z=q[:,-1] # Stationary dist. is last column of QR fact
-    z/=np.sum(z) # Normalize Trajectory
+    z/=np.sum(z) # Normalize Trajectory 
     # Polish solution using power method.
     for itr in xrange(max_iter):
         znew = np.dot(z,F)
-        maxresid = np.max(np.abs(znew[ z>0 ] - z[ z>0 ])/z[z > 0 ]) # Convergence Criterion 
+        tv = np.abs(znew[ z>0 ] - z[ z>0 ]) 
+        tv = tv/z[z > 0 ]
+        maxresid = np.max(tv) # Convergence Criterion 
         if maxresid < residtol:
             break
         else:

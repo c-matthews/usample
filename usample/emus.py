@@ -121,17 +121,19 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-8,use_iats=False,iat_method
 
     """
     L = len(psis) # Number of States
-    Npnts = np.array([len(psis_i) for psis_i in psis])
-    Npnts /= np.max(Npnts)
-
+    Npnts = np.array([len(psis_i) for psis_i in psis]) 
+    Npnts = (1.0 * Npnts ) / np.max(Npnts)
+     
+    
     if use_iats:
         z,F,iats = emus_iter(psis,neighbors=neighbors,return_iats=use_iats,iat_method=iat_method)
     else:
         z,F = emus_iter(psis,neighbors=neighbors,return_iats=use_iats,iat_method=iat_method)
         iats = np.ones(z.shape)
+ 
 
     # we perform the self-consistent polishing iteration
-    for n in xrange(nMBAR):
+    for n in xrange(nMBAR): 
         z_old = z
         z_old[ z_old<1e-15 ] = 1e-15
         Apart = Npnts/z_old
@@ -142,6 +144,7 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-8,use_iats=False,iat_method
         else:
             z, F = emus_iter(psis,Amat,neighbors=neighbors)
         # Check if we have converged.	
+
         if np.max(np.abs(z-z_old)/z_old) < tol:
             break
                             
@@ -201,7 +204,7 @@ def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='
         else:
             Fi = Fi_out
         # Unpack the Neighbor list
-        F[i] = unpackNbrs(Fi,nbrs_i,L)
+        F[i] = unpackNbrs(Fi,nbrs_i,L) 
 
     z = lm.stationary_distrib(F)
 #    print F

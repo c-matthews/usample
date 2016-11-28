@@ -20,6 +20,13 @@ def GetGR(ii):
     
     return usampler.wlist[ii].gr
 
+def GetAcor(ii):
+    
+    #if (usampler.burn_acor>0):
+    return usampler.wlist[ii].get_acor()
+    #else:
+    #    return 0
+
 def GatherStates(ii):
     
     return usampler.wlist[ii].get_state()
@@ -46,7 +53,7 @@ def PushTraj(z):
 
 class UmbrellaSampler:
     
-    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False):
+    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False, burn_pc=0, burn_acor=0):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
@@ -59,6 +66,13 @@ class UmbrellaSampler:
         
         self.mpi = mpi 
         self.us_pool = None
+        
+        self.staticpool = False
+        
+        self.burn_pc=burn_pc
+        self.burn_acor=burn_acor
+        
+        self.zacor = []
         
         global usampler 
         usampler = self
@@ -194,6 +208,22 @@ class UmbrellaSampler:
             
         return np.max( gr )
     
+    def get_static_pool(self):
+        
+        if (not self.mpi):
+            return None
+        
+        if (MPI.COMM_WORLD.Get_rank()>=len(self.wlist) ):
+            return None
+        
+        
+        self.staticpool = True
+        
+        self.us_pool = mpi_pool.MPIPool(comm=self.us_comm) 
+        
+        return self.us_pool
+        
+    
     def run(self, tsteps , freq=0, repex=0, grstop=0):
         
         steps = 0
@@ -208,11 +238,15 @@ class UmbrellaSampler:
             if (MPI.COMM_WORLD.Get_rank()>=len(self.wlist) ):
                 return (None,None,None)
             
-            self.us_pool = mpi_pool.MPIPool(comm=self.us_comm) 
+            if (not self.staticpool):
+                self.us_pool = mpi_pool.MPIPool(comm=self.us_comm) 
                 
             if (MPI.COMM_WORLD.Get_rank()>0):
-                self.us_pool.wait()
-                return (None,None,None)
+                if (self.staticpool):
+                    return
+                else:
+                    self.us_pool.wait()
+                    return (None,None,None)
                 
                 
         while (steps < tsteps) and ( currentgr > grstop  ):
@@ -232,21 +266,33 @@ class UmbrellaSampler:
                 print "    [d]: max gr: " + str( currentgr )
             
             self.run_repex( repex )
+            
+            
+        
+        if (self.us_pool):
+            zacor = self.us_pool.map( GetAcor ,  range(0,len(self.wlist))   )
+        else:
+            zacor = map( GetAcor ,  range(0,len(self.wlist))   )
         
         if (self.us_pool):
             Traj = self.us_pool.map( GatherTraj ,  range(0,len(self.wlist))   )
             map( PushTraj , zip( range(0,len(self.wlist)) , Traj ) )
-            self.us_pool.close()
+            if (not self.staticpool):
+                self.us_pool.close()
+            
+        self.zacor = zacor
             
         self.Solve_EMUS( self.evsolves )
+        
         if (self.debug):
             print "    [d]: z values " + str( self.z )
             
         
         pos = np.zeros( (np.shape( self.wlist[0].traj_pos)[0] , 0 , np.shape( self.wlist[0].traj_pos)[2] ) )
         prob = np.zeros( (np.shape( self.wlist[0].traj_pos)[0] , 0  ) )
+        burnmask = np.zeros( (np.shape( self.wlist[0].traj_pos)[0] , 0  ) ) 
         
-        for w in self.wlist:
+        for ii,w in enumerate(self.wlist):
             
             traj = np.array( w.traj_pos )
             
@@ -256,16 +302,28 @@ class UmbrellaSampler:
             
             traj_prob =  np.array(w.traj_prob).squeeze()
             
+            bb = np.ones(  np.shape( traj_prob ) )
+             
+            bb[:self.starts[ii],:] = 0 
+             
             
             prob = np.append( prob , traj_prob , axis=1 )
+            
+            burnmask = np.append( burnmask , np.copy( bb ) , axis=1 )
                 
         
-        ts=np.shape(pos) 
+        ts=np.shape(pos)
         
         pos = np.reshape( pos , (ts[0]*ts[1],ts[2] ) )
+         
         
         prob = np.reshape( prob , (ts[0]*ts[1],1) )
         
+        burnmask = np.reshape( burnmask , (ts[0]*ts[1],1) )
+        
+        if (self.debug  ):
+            print "    [d]: Acor values " + str( ["%.2f" % elem for elem in self.zacor] )
+            print "    [d]: Percentage burned: " + str(100 - 100.0 * np.sum(burnmask) / np.size(burnmask) ) + "%, (" + str( int(np.sum(1-burnmask) )) + " of " + str(np.size(burnmask)) + ")"
         
         wgt = np.zeros(  (len(prob) , 0 ) )
         widx = 0
@@ -283,7 +341,9 @@ class UmbrellaSampler:
         maxW = - maxW 
         maxW = maxW - np.max( maxW )
         wgt = wgt * np.exp( maxW ) 
-        
+         
+        wgt = wgt * burnmask
+         
         
         return  (pos, wgt, prob)
         
@@ -293,6 +353,7 @@ class UmbrellaSampler:
         
         NW = len(self.wlist)
         NS = np.size(self.wlist[0].traj_prob)
+        Nwalkers = np.shape(self.wlist[0].traj_prob)[1] 
         
         AvgPsi = np.zeros( (NW , NS , NW ) )
         
@@ -306,7 +367,39 @@ class UmbrellaSampler:
                 
         AvgPsi = AvgPsi - np.max( AvgPsi )
         
+        AP = []
+        starts = []
+        
+        for ii in range(NW):
+             
+            
+            st = int( self.burn_acor * self.zacor[ii]  * Nwalkers )
+            
+            st = st + int( (NS - st ) * self.burn_pc )
+            
+            if (st>=int(0.25*NS)):
+                st = int(0.25*NS)
+            if (st<0):
+                st=0
+                
+            #print [NS , self.burn_acor , self.zacor[ii] , self.burn_pc, ii, st ]
+            
+            zz = AvgPsi[ii,(st):,:]
+            zz = zz.squeeze()
+            
+            AP.append( np.exp( zz ) )
+            
+            starts.append( st )
+        
+        
         self.AvgPsi = np.exp( AvgPsi )
+        
+        self.AvgPsi = AP
+        starts = np.array(starts) / Nwalkers
+        
+        self.starts = [ int(x) for x in starts ]
+        
+        
         
         return self.AvgPsi
     
@@ -327,10 +420,11 @@ class UmbrellaSampler:
             return
         
         if (self.us_pool):
-            self.us_pool.close()
+            if (not self.staticpool):
+                self.us_pool.close()
             
         for w in self.wlist:
-            if w.pool:
+            if (w.pool):
                 w.pool.close()
         
     def is_master(self):
