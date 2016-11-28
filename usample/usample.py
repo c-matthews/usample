@@ -53,7 +53,7 @@ def PushTraj(z):
 
 class UmbrellaSampler:
     
-    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False, burn_pc=0, burn_acor=0):
+    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
@@ -334,10 +334,16 @@ class UmbrellaSampler:
             wgt = np.append(wgt ,  w.getbias( prob ) - np.log( self.z[widx] ), axis=1)
             widx+=1
         
+        # Requires numpy 1.7+
+        #maxW = np.max( wgt , axis=1, keepdims=True )
         
-        maxW = np.max( wgt , axis=1, keepdims=True )
-        wgt = wgt - maxW 
-        wgt = 1.0 / np.sum(  np.exp( wgt ), axis = 1, keepdims=True ) 
+        maxW = np.max(wgt , axis=1)
+        maxW = np.reshape( maxW , ( len(maxW),1) ) 
+        
+        wgt = wgt - maxW
+        denom = np.sum(  np.exp( wgt ), axis = 1  ) 
+        denom = np.reshape( denom , ( len(denom) , 1 ) )
+        wgt = 1.0 / denom
         maxW = - maxW 
         maxW = maxW - np.max( maxW )
         wgt = wgt * np.exp( maxW ) 
@@ -375,10 +381,10 @@ class UmbrellaSampler:
             
             st = int( self.burn_acor * self.zacor[ii]  * Nwalkers )
             
-            st = st + int( (NS - st ) * self.burn_pc )
+            #st = st + int( (NS - st ) * self.burn_pc )
             
-            if (st>=int(0.25*NS)):
-                st = int(0.25*NS)
+            if (st>=int(self.burn_pc*NS)):
+                st = int(self.burn_pc*NS)
             if (st<0):
                 st=0
                 
