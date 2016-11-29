@@ -1,3 +1,11 @@
+#
+# Samples a 2d Gaussian using Umbrella sampling in the temperature (serial version)
+#
+# Usage:
+# > python gaussian.py
+#
+
+
 import usample.usample
 import numpy as np
 import emcee 

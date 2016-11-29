@@ -117,6 +117,11 @@ class UmbrellaSampler:
         if (self.debug and self.mpi):
             if (self.is_master() ):
                 print "    [d]: Cores distributed as " + str( self.wranks )
+        
+             
+        if (self.debug):
+            if (self.is_master() ):
+                print "    [d]: Temperatures: " + str( ["%.2f" % elem for elem in temp_iterator] )
             
     
     def add_umbrella(self , temp, ic , numwalkers , sampler=None, comm=None, ranks=None ):
@@ -224,7 +229,7 @@ class UmbrellaSampler:
         return self.us_pool
         
     
-    def run(self, tsteps , freq=0, repex=0, grstop=0):
+    def run(self, tsteps , freq=0, repex=0, grstop=0, OutputWeights=True ):
         
         steps = 0
         currentgr = 1.0
@@ -258,7 +263,7 @@ class UmbrellaSampler:
             
             
             steps += freq
-            if (self.debug):
+            if (self.debug and OutputWeights):
                 print " :- Completed " + str(steps) + " of " + str(tsteps) + " iterations."
               
             currentgr = np.max( self.get_gr() ) 
@@ -274,14 +279,23 @@ class UmbrellaSampler:
         else:
             zacor = map( GetAcor ,  range(0,len(self.wlist))   )
         
+        self.zacor = zacor
+
+        if (not OutputWeights):
+            if (self.us_pool):
+                if (not self.staticpool):
+                    self.us_pool.close()
+            return (None,None,None)
+
+
         if (self.us_pool):
             Traj = self.us_pool.map( GatherTraj ,  range(0,len(self.wlist))   )
             map( PushTraj , zip( range(0,len(self.wlist)) , Traj ) )
             if (not self.staticpool):
                 self.us_pool.close()
             
-        self.zacor = zacor
             
+
         self.Solve_EMUS( self.evsolves )
         
         if (self.debug):
@@ -381,14 +395,12 @@ class UmbrellaSampler:
             
             st = int( self.burn_acor * self.zacor[ii]  * Nwalkers )
             
-            #st = st + int( (NS - st ) * self.burn_pc )
             
             if (st>=int(self.burn_pc*NS)):
                 st = int(self.burn_pc*NS)
             if (st<0):
                 st=0
                 
-            #print [NS , self.burn_acor , self.zacor[ii] , self.burn_pc, ii, st ]
             
             zz = AvgPsi[ii,(st):,:]
             zz = zz.squeeze()
@@ -438,7 +450,6 @@ class UmbrellaSampler:
             return True
         
         return MPI.COMM_WORLD.Get_rank()==0
-    
-                
+     
                 
                 

@@ -1,3 +1,11 @@
+#
+# Samples a 2d Gaussian using Umbrella sampling in the temperature (parallel version)
+#
+# Usage:
+# > mpirun -np N python gaussian.py
+# where "N" is the number of cores to run on, e.g. 4
+#
+
 import usample.usample
 import numpy as np
 import emcee 
