@@ -1,8 +1,6 @@
 import numpy as np
 import random
 import emus 
-import mpi_pool
-from mpi4py import MPI 
 
 from umbrella import Umbrella
  
@@ -66,6 +64,10 @@ class UmbrellaSampler:
         
         self.mpi = mpi 
         self.us_pool = None
+        if mpi:
+            import mpi_pool
+            from mpi4py import MPI 
+
         
         self.staticpool = False
         

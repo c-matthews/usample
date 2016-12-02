@@ -1,7 +1,5 @@
 import numpy as np 
 from gr import GetGR 
-from mpi4py import MPI 
-import mpi_pool
 import copy
 
 def g_lnprob(p , lpf , temp, lpfargs): 
@@ -56,6 +54,9 @@ class Umbrella:
         self.pool = None
             
         if not comm==None:
+            from mpi4py import MPI 
+            import mpi_pool
+
             if MPI.COMM_WORLD.Get_rank() in ranks:
                 self.pool = mpi_pool.MPIPool( comm=comm )
                 self.pool.map( initiate_pool , range(  self.pool.size ) )
