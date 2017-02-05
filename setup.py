@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='usample',
-      version='0.1.0',
+      version='0.2.0',
       description='Simple umbrella sampling package',
       url='http://github.com/c-matthews/usample',
       author='C Matthews',

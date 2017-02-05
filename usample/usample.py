@@ -64,9 +64,11 @@ class UmbrellaSampler:
         
         self.mpi = mpi 
         self.us_pool = None
-        if mpi:
+        if (mpi):
             import mpi_pool
             from mpi4py import MPI 
+            self.MPI = MPI 
+            self.mpi_pool = mpi_pool
 
         
         self.staticpool = False
@@ -81,24 +83,34 @@ class UmbrellaSampler:
          
         
     
-    def add_umbrellas(self, temp_iterator, ic, numwalkers, sampler=None):
+    def add_umbrellas(self, temperatures=None, centers=None, cvfn=None, ic=None, numwalkers=None, sampler=None):
         
         
-        self.w_comm = [None] * len( temp_iterator )
-        self.wranks = [None] * len( temp_iterator )
+        if (temperatures is None):
+            ntemps = 0
+        else:
+            ntemps = len(temperatures)
+        if (centers is None):
+            ncenters = 0
+        else:
+            ncenters = len(centers)
+            
+        nwin = ntemps + ncenters
+        
+        self.w_comm = [None] * nwin
+        self.wranks = [None] * nwin
              
         
-        if (self.mpi):
+        if (self.mpi): 
             
-            nproc = MPI.COMM_WORLD.Get_size()
-            nwin = len( temp_iterator ) 
+            nproc = self.MPI.COMM_WORLD.Get_size() 
             
             if (nproc < nwin):
-                self.us_comm = MPI.COMM_WORLD 
+                self.us_comm = self.MPI.COMM_WORLD 
             else:
-                self.group = MPI.COMM_WORLD.Get_group()
+                self.group = self.MPI.COMM_WORLD.Get_group()
                 us_group = self.group.Incl(  np.arange(0, nwin ) )
-                self.us_comm = MPI.COMM_WORLD.Create( us_group )   
+                self.us_comm = self.MPI.COMM_WORLD.Create( us_group )   
                 
                 self.wranks = [ range(ii,nproc,nwin) for ii in range(nwin) ]
                 
@@ -107,28 +119,61 @@ class UmbrellaSampler:
                 for s in self.wranks:
                     if len(s)>1:
                         sample_group = self.group.Incl( s )
-                        self.w_comm.append(  MPI.COMM_WORLD.Create( sample_group )  )
+                        self.w_comm.append(  self.MPI.COMM_WORLD.Create( sample_group )  )
                     else:
                         self.w_comm.append( None ) 
                      
+        ii=0
         
-        for ii, tt in enumerate(temp_iterator):
+        if (temperatures is not None):
+            for tt in temperatures:
+                
+                self.add_umbrella(ic,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],temp=tt )
+                ii = ii + 1
+        
+        if (centers is not None):
+            sigmas = []
+            for jj,cc in enumerate(centers):
+                
+                if (jj==0):
+                    ll = cc - centers[jj+1]
+                else:
+                    ll = centers[jj-1]
+                
+                if (jj==len(centers)-1 ):
+                    rr = 2*cc - centers[jj-1]
+                else:
+                    rr = centers[jj+1]
+                sigma = (rr-ll)*0.5
+                sigma = sigma / 2.0  # 2 sigma width
+                sigmas.append(sigma)
+                self.add_umbrella(ic,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],center=cc,cvfn=cvfn,sigma=sigma )
+                ii = ii + 1
             
-            self.add_umbrella(tt,ic,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii] )
-             
-        if (self.debug and self.mpi):
-            if (self.is_master() ):
-                print "    [d]: Cores distributed as " + str( self.wranks )
+        if ( (centers is not None) and (temperatures is not None) ):
+            self.repexTC = True
+            self.hightemp = len(temperatures)-1
+        else:
+            self.repexTC = False
+
         
              
         if (self.debug):
             if (self.is_master() ):
-                print "    [d]: Temperatures: " + str( ["%.2f" % elem for elem in temp_iterator] )
-            
+                print "    [d]: Total windows: " + str( nwin )
+                if (temperatures is not None):
+                    print "    [d]: Temperatures: " + str( ["%.2f" % elem for elem in temperatures] )
+                if (centers is not None):
+                    print "    [d]: Centers: " + str( ["%.2f" % elem for elem in centers] )
+                    print "    [d]: Sigmas: " + str( ["%.2f" % elem for elem in sigmas] )
+                    
+                if (self.mpi):
+                    print "    [d]: Cores distributed as " + str( self.wranks )
+                     
     
-    def add_umbrella(self , temp, ic , numwalkers , sampler=None, comm=None, ranks=None ):
+    def add_umbrella(self , ic , numwalkers , sampler=None, comm=None, ranks=None, temp=None, center=None, cvfn=None,sigma=0 ):
         
-        nu = Umbrella( self.lpf , temp , ic , numwalkers, lpfargs=self.lpfargs, sampler=sampler, comm=comm, ranks=ranks )
+        nu = Umbrella( self.lpf , ic , numwalkers, lpfargs=self.lpfargs, sampler=sampler, comm=comm, ranks=ranks, temp=temp, center=center, cvfn=cvfn,sigma=sigma )
         
         self.wlist.append( nu )
           
@@ -149,23 +194,40 @@ class UmbrellaSampler:
         
         
         
-        svec = np.zeros( len(self.wlist) -1 )
+        svec = np.zeros( len(self.wlist) )
         
         evodd = np.arange( len( self.wlist)  - 1 )
         evodd = np.concatenate( (evodd[0::2] , evodd[1::2]) ) # 0 2 4 6 8 1 3 5 7
       
+        evoddplus1 = evodd+1
+        
+        if (self.repexTC):
+            justC = np.arange( self.hightemp+1 , len(self.wlist) )
+            evodd = np.concatenate( (evodd, justC) )
+            evoddplus1 = np.concatenate((evoddplus1, [self.hightemp]*len(justC)) )
+            
+        #print evodd
+        #print evoddplus1
+        
+        #exit()
+        
+        attempts = 0
+        accepts = 0
+        
         for _ in np.arange( nrx ):
   
-            for wn in evodd: 
+            for wi,wn in enumerate(evodd): 
+            
+                wnp1 = evoddplus1[ wi ]
             
                 ii = random.randint( 0 , self.wlist[wn].nows  -1 )
-                jj = random.randint( 0 , self.wlist[wn+1].nows  -1 )
+                jj = random.randint( 0 , self.wlist[wnp1].nows  -1 )
                 
                 bias_i_in_i = self.wlist[wn].blobs0[ii] 
-                bias_j_in_j = self.wlist[wn+1].blobs0[jj] 
+                bias_j_in_j = self.wlist[wnp1].blobs0[jj] 
                 
-                bias_i_in_j = self.wlist[wn+1].getbias( self.wlist[wn].lnprob0[ii] )
-                bias_j_in_i = self.wlist[wn].getbias( self.wlist[wn+1].lnprob0[jj] )
+                bias_i_in_j = self.wlist[wnp1].getbias(  self.wlist[wn].p[ii] , self.wlist[wn].lnprob0[ii] )
+                bias_j_in_i = self.wlist[wn].getbias( self.wlist[wnp1].p[jj]  , self.wlist[wnp1].lnprob0[jj] )
                 
                 newE = bias_i_in_j + bias_j_in_i
                 oldE = bias_i_in_i + bias_j_in_j
@@ -177,19 +239,22 @@ class UmbrellaSampler:
                     # Perform swap
                     
                     pos_i = np.copy( self.wlist[wn].p[ii] )
-                    pos_j = np.copy( self.wlist[wn+1].p[jj] )
+                    pos_j = np.copy( self.wlist[wnp1].p[jj] )
                     prob_i = self.wlist[wn].lnprob0[ii]
-                    prob_j = self.wlist[wn+1].lnprob0[jj]
+                    prob_j = self.wlist[wnp1].lnprob0[jj]
                     
                     self.wlist[wn].p[ii] = pos_j
                     self.wlist[wn].lnprob0[ii] = prob_j - bias_j_in_j + bias_j_in_i
                     self.wlist[wn].blobs0[ii] = bias_j_in_i
                     
-                    self.wlist[wn+1].p[jj] = pos_i
-                    self.wlist[wn+1].lnprob0[jj] = prob_i - bias_i_in_i + bias_i_in_j
-                    self.wlist[wn+1].blobs0[jj] = bias_i_in_j
+                    self.wlist[wnp1].p[jj] = pos_i
+                    self.wlist[wnp1].lnprob0[jj] = prob_i - bias_i_in_i + bias_i_in_j
+                    self.wlist[wnp1].blobs0[jj] = bias_i_in_j
                     
                     svec[wn]+=1
+                    accepts+= 1
+                    
+                attempts +=1
                     
         states=[]
         
@@ -203,7 +268,8 @@ class UmbrellaSampler:
             states = map( PushStates , zip( range(0,len(self.wlist)) , states )  )
             
         if (self.debug):
-            print "    [d]: Repex summary " + str( svec )
+            accrate = accepts / (1.0*attempts)
+            print "    [d]: Repex summary (" + str(int(10000*accrate )/100.0) + "%):" + str( svec )
             
     
     def get_gr(self):
@@ -220,13 +286,13 @@ class UmbrellaSampler:
         if (not self.mpi):
             return None
         
-        if (MPI.COMM_WORLD.Get_rank()>=len(self.wlist) ):
+        if (self.MPI.COMM_WORLD.Get_rank()>=len(self.wlist) ):
             return None
         
         
         self.staticpool = True
         
-        self.us_pool = mpi_pool.MPIPool(comm=self.us_comm) 
+        self.us_pool = self.mpi_pool.MPIPool(comm=self.us_comm) 
         
         return self.us_pool
         
@@ -242,13 +308,13 @@ class UmbrellaSampler:
             
         if (self.mpi):
             
-            if (MPI.COMM_WORLD.Get_rank()>=len(self.wlist) ):
+            if (self.MPI.COMM_WORLD.Get_rank()>=len(self.wlist) ):
                 return (None,None,None)
             
             if (not self.staticpool):
-                self.us_pool = mpi_pool.MPIPool(comm=self.us_comm) 
+                self.us_pool = self.mpi_pool.MPIPool(comm=self.us_comm) 
                 
-            if (MPI.COMM_WORLD.Get_rank()>0):
+            if (self.MPI.COMM_WORLD.Get_rank()>0):
                 if (self.staticpool):
                     return
                 else:
@@ -345,9 +411,14 @@ class UmbrellaSampler:
         widx = 0
         # <f> = < f  /  (\sum \psi_i / z_i ) >
         
-        for w in self.wlist:
         
-            wgt = np.append(wgt ,  w.getbias( prob ) - np.log( self.z[widx] ), axis=1)
+        for w in self.wlist:
+         
+            myres = w.getbias( pos.T , prob )
+            if (myres.ndim==1):
+                myres = np.expand_dims( myres , axis=1 )
+                
+            wgt = np.append(wgt ,  myres - np.log( self.z[widx] ), axis=1)
             widx+=1
         
         # Requires numpy 1.7+
@@ -381,11 +452,19 @@ class UmbrellaSampler:
         
         for w1 in range(NW):
         
-            traj = np.array(self.wlist[w1].traj_prob).flatten()
+            traj_prob = np.array(self.wlist[w1].traj_prob).flatten()
+            #traj_pos = np.array(self.wlist[w1].traj_pos).flatten()
+            shp = np.shape( np.array(self.wlist[w1].traj_pos) )
+            traj_pos = np.reshape( np.array(self.wlist[w1].traj_pos) , ( shp[0]*shp[1],shp[2] ) )
+            traj_pos = traj_pos.T
+            
+            #print traj_pos[:,2577], traj_prob[2577], self.lpf( traj_pos[:,2577] )
+            #print np.shape( traj_prob ) , np.shape( traj_pos )
+            #exit()
             
             for  w2  in range(NW):
                 
-                AvgPsi[w1,:,w2] = self.wlist[w2].getbias( traj )
+                AvgPsi[w1,:,w2] = self.wlist[w2].getbias( traj_pos , traj_prob )
                 
         AvgPsi = AvgPsi - np.max( AvgPsi )
         
@@ -451,7 +530,7 @@ class UmbrellaSampler:
         if (not self.mpi):
             return True
         
-        return MPI.COMM_WORLD.Get_rank()==0
+        return self.MPI.COMM_WORLD.Get_rank()==0
      
                 
                 

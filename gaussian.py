@@ -48,7 +48,7 @@ temps = np.linspace( 1 , 10 , 8 )
 # Can be added individually, or in bulk:
 #
 
-us.add_umbrellas( temps , numwalkers=8 , ic=means , sampler=emcee.EnsembleSampler )
+us.add_umbrellas( temperatures=temps , numwalkers=8 , ic=means , sampler=emcee.EnsembleSampler )
 
 # 
 # Then run for 10000 steps in each window.

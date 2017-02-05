@@ -9,5 +9,6 @@ __email__ = "c.matthews@uchicago.edu"
 
 from usample import UmbrellaSampler
 from umbrella import Umbrella
+from makecv  import Makecvfn
 
 

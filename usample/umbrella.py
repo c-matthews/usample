@@ -2,12 +2,12 @@ import numpy as np
 from gr import GetGR 
 import copy
 
-def g_lnprob(p , lpf , temp, lpfargs): 
+def g_lnprob(p , lpf , biasinfo, lpfargs): 
         
     L = lpf(p , *lpfargs ) 
     
     if (np.isfinite(L) ):
-        bias = g_getbias( L , temp )
+        bias = g_getbias( p , L , biasinfo )
     else:
         bias = 0
       
@@ -15,10 +15,25 @@ def g_lnprob(p , lpf , temp, lpfargs):
     
     
     
-def g_getbias( L , temp ):
+def g_getbias( p , L , biasinfo ):
      
+    win_cent,center,cvfn,sigma,win_temp,tempfac = biasinfo
     
-    return L * temp
+    if (win_temp):    
+        return L * tempfac
+    
+    if (win_cent):
+        cv = cvfn( p )
+        
+        cv = np.fmax( cv , 0 )
+        cv = np.fmin( cv , 1 )
+        
+        xp = (cv - center)
+        xp = -xp * xp / (2*sigma*sigma)
+        
+        return xp
+    
+    return 0
     
 def initiate_pool(i):
     pass
@@ -26,13 +41,32 @@ def initiate_pool(i):
 
 class Umbrella:
     
-    def __init__(self,lpf,temp, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[], samplerargs={}   ):
+    def __init__(self,lpf, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[], samplerargs={}, temp=None, center=None, cvfn=None,sigma=1   ):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
-        self.temp = temp
-        self.tempfac = 1.0 / temp - 1.0 
+        
+        if (temp is None):
+            self.temp = 1.0
+            self.win_temp = False
+        else:
+            self.temp = temp
+            self.win_temp = True 
+            
+        if (center is None):
+            self.center = 0.5
+            self.win_cent = False
+        else:
+            self.center = center
+            self.win_cent = True
+             
+        self.sigma = sigma
+        self.cvfn = cvfn
+        
+        self.tempfac = 1.0 / self.temp - 1.0 
         self.nows = nows
+        
+        self.biasinfo = [self.win_cent,self.center,self.cvfn,self.sigma,self.win_temp,self.tempfac]
         
         # Initialize the positions around the ic  
         self.ic = np.array(ic).squeeze()
@@ -63,14 +97,14 @@ class Umbrella:
                  
 
         # Setup the sampler. At the moment, just use emcee with g_lnprob as the log likelihood eval
-        self.sampler = sampler(self.nows,  np.shape(self.p)[1] , g_lnprob, pool=self.pool , args=[self.lpf , self.tempfac, lpfargs ], **samplerargs )
+        self.sampler = sampler(self.nows,  np.shape(self.p)[1] , g_lnprob, pool=self.pool , args=[self.lpf , self.biasinfo, lpfargs ], **samplerargs )
          
     
-    def getbias(self, L ):
+    def getbias(self, p , L ):
         
         # return the log(bias) function.
         
-        return g_getbias( L , self.tempfac )
+        return g_getbias( p , L , self.biasinfo )
     
     def get_state(self):
         
