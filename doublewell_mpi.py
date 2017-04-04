@@ -7,7 +7,6 @@
 #
 
 import usample.usample
-import usample.makecv
 import numpy as np
 import emcee 
 
@@ -29,8 +28,8 @@ def log_prob_fn(p ):
     return lpf 
 
 
-cvfn = usample.Makecvfn( [-3,0] , [3,0] ).getcv
- 
+#cvfn = usample.Makecvfn( [-3,0] , [3,0] ).getcv
+cvfn = ["line", [np.array([-1.0,0]), np.array([1.0,0])] ]
 
 #
 # Now create the umbrella sampler object 
@@ -44,8 +43,8 @@ us = usample.UmbrellaSampler( log_prob_fn  , mpi=True, debug=True,  burn_acor=20
 # First, define some temperatures to run with. 
 #
 
-temps = np.linspace( 1 , 10 , 8 ) 
-centers = np.linspace( 0 , 1 , 8 )
+temps = np.linspace( 1 , 10 , 4 ) 
+centers = [0]#np.linspace( 0 , 1 , 3 )
 
 #
 # Then add an umbrella at each temperature. Use four walkers, and give some initial conditions
@@ -53,7 +52,7 @@ centers = np.linspace( 0 , 1 , 8 )
 #
 
 #us.add_umbrellas( temperatures=temps , numwalkers=6 , ic=np.array([1,0]) , sampler=emcee.EnsembleSampler )
-us.add_umbrellas( temperatures=temps, centers=centers, cvfn=cvfn , numwalkers=6 , ic=np.array([0,0]) , sampler=emcee.EnsembleSampler )
+us.add_umbrellas( temperatures=temps, centers=centers, cvfn=cvfn , numwalkers=4 , ic=np.array([0,0]) , sampler=emcee.EnsembleSampler )
 
 # 
 # Then run for 10000 steps in each window.
@@ -61,7 +60,7 @@ us.add_umbrellas( temperatures=temps, centers=centers, cvfn=cvfn , numwalkers=6 
 # Try to replica exchange [repex]-many walkers every [freq] steps
 #
 
-pos,weights,prob = us.run(500 , freq=500, repex=10    )
+pos,weights,prob = us.run(2 , freq=2, repex=0    )
 
 #
 # We save the output

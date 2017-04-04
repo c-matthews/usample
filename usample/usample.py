@@ -3,14 +3,14 @@ import random
 import emus 
 
 from umbrella import Umbrella
- 
+from makecv import getic
     
 
 def SampleWindow(z): 
     
-    ii,nsteps = z
+    ii,nsteps,thin = z
     
-    usampler.wlist[ii].sample(nsteps)
+    usampler.wlist[ii].sample(nsteps,thin=thin)
     
     return
 
@@ -51,7 +51,7 @@ def PushTraj(z):
 
 class UmbrellaSampler:
     
-    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0):
+    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0, logpsicutoff=700):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
@@ -78,24 +78,20 @@ class UmbrellaSampler:
         
         self.zacor = []
         
+        self.logpsicutoff = logpsicutoff
+        
         global usampler 
         usampler = self
-         
+        
         
     
-    def add_umbrellas(self, temperatures=None, centers=None, cvfn=None, ic=None, numwalkers=None, sampler=None):
+    def add_umbrellas(self, temperatures=[1.0], centers=[0.0], cvfn=None, ic=None, numwalkers=None, sampler=None):
+         
         
-        
-        if (temperatures is None):
-            ntemps = 0
-        else:
-            ntemps = len(temperatures)
-        if (centers is None):
-            ncenters = 0
-        else:
-            ncenters = len(centers)
+        ntemps = len(temperatures)
+        ncenters = len(centers)
             
-        nwin = ntemps + ncenters
+        nwin = ntemps * ncenters
         
         self.w_comm = [None] * nwin
         self.wranks = [None] * nwin
@@ -124,16 +120,11 @@ class UmbrellaSampler:
                         self.w_comm.append( None ) 
                      
         ii=0
+        sigmas=[]
         
-        if (temperatures is not None):
-            for tt in temperatures:
-                
-                self.add_umbrella(ic,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],temp=tt )
-                ii = ii + 1
-        
-        if (centers is not None):
-            sigmas = []
-            for jj,cc in enumerate(centers):
+        for jj,cc in enumerate(centers):
+            
+            if ( len(centers)>1):
                 
                 if (jj==0):
                     ll = cc - centers[jj+1]
@@ -145,27 +136,68 @@ class UmbrellaSampler:
                 else:
                     rr = centers[jj+1]
                 sigma = (rr-ll)*0.5
-                sigma = sigma / 2.0  # 2 sigma width
+                sigma = sigma #/ 2.0  # 2 sigma width
                 sigmas.append(sigma)
-                self.add_umbrella(ic,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],center=cc,cvfn=cvfn,sigma=sigma )
-                ii = ii + 1
+                ic_cv = getic( cc , cvfn )
+                
+            else:
+                sigma = 1.0
+                ic_cv = ic
+                
+            for tt in temperatures:
+                
+                self.add_umbrella(ic_cv,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],center=cc,cvfn=cvfn,sigma=sigma, temp=tt )
+                
+                ii+=1
             
-        if ( (centers is not None) and (temperatures is not None) ):
-            self.repexTC = True
-            self.hightemp = len(temperatures)-1
-        else:
-            self.repexTC = False
+            
+        
+        
+        
+        
+        
+        #if (temperatures is not None):
+            #for tt in temperatures:
+                
+                #self.add_umbrella(ic,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],temp=tt )
+                #ii = ii + 1
+        
+        #if (centers is not None):
+            #sigmas = []
+            #for jj,cc in enumerate(centers):
+                
+                #if (jj==0):
+                    #ll = cc - centers[jj+1]
+                #else:
+                    #ll = centers[jj-1]
+                
+                #if (jj==len(centers)-1 ):
+                    #rr = 2*cc - centers[jj-1]
+                #else:
+                    #rr = centers[jj+1]
+                #sigma = (rr-ll)*0.5
+                #sigma = sigma / 2.0  # 2 sigma width
+                #sigmas.append(sigma)
+                #ic_cv = getic( cc , cvfn )
+                #self.add_umbrella(ic_cv,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],center=cc,cvfn=cvfn,sigma=sigma )
+                #ii = ii + 1
+            
+        #if ( (centers is not None) and (temperatures is not None) ):
+        #    self.repexTC = True
+        #    self.hightemp = len(temperatures)-1
+        #else:
+        #    self.repexTC = False
 
         
              
         if (self.debug):
             if (self.is_master() ):
                 print "    [d]: Total windows: " + str( nwin )
-                if (temperatures is not None):
-                    print "    [d]: Temperatures: " + str( ["%.2f" % elem for elem in temperatures] )
-                if (centers is not None):
-                    print "    [d]: Centers: " + str( ["%.2f" % elem for elem in centers] )
-                    print "    [d]: Sigmas: " + str( ["%.2f" % elem for elem in sigmas] )
+                if (len(temperatures)>1):
+                    print "    [d]: Temperatures: " + str( [float("%.2f" % elem) for elem in temperatures] )
+                if (len(centers)>1):
+                    print "    [d]: Centers: " + str( [float("%.2f" % elem) for elem in centers] )
+                    print "    [d]: Sigmas: " + str( [float("%.2f" % elem) for elem in sigmas] )
                     
                 if (self.mpi):
                     print "    [d]: Cores distributed as " + str( self.wranks )
@@ -201,10 +233,10 @@ class UmbrellaSampler:
       
         evoddplus1 = evodd+1
         
-        if (self.repexTC):
-            justC = np.arange( self.hightemp+1 , len(self.wlist) )
-            evodd = np.concatenate( (evodd, justC) )
-            evoddplus1 = np.concatenate((evoddplus1, [self.hightemp]*len(justC)) )
+        #if (self.repexTC):
+        #    justC = np.arange( self.hightemp+1 , len(self.wlist) )
+        #    evodd = np.concatenate( (evodd, justC) )
+        #    evoddplus1 = np.concatenate((evoddplus1, [self.hightemp]*len(justC)) )
             
         #print evodd
         #print evoddplus1
@@ -226,8 +258,11 @@ class UmbrellaSampler:
                 bias_i_in_i = self.wlist[wn].blobs0[ii] 
                 bias_j_in_j = self.wlist[wnp1].blobs0[jj] 
                 
-                bias_i_in_j = self.wlist[wnp1].getbias(  self.wlist[wn].p[ii] , self.wlist[wn].lnprob0[ii] )
-                bias_j_in_i = self.wlist[wn].getbias( self.wlist[wnp1].p[jj]  , self.wlist[wnp1].lnprob0[jj] )
+                pi = self.wlist[wn].lnprob0[ii] - bias_i_in_i
+                pj = self.wlist[wnp1].lnprob0[jj] - bias_j_in_j
+                
+                bias_i_in_j = self.wlist[wnp1].getbias(  self.wlist[wn].p[ii] , pi )
+                bias_j_in_i = self.wlist[wn].getbias( self.wlist[wnp1].p[jj]  , pj )
                 
                 newE = bias_i_in_j + bias_j_in_i
                 oldE = bias_i_in_i + bias_j_in_j
@@ -297,7 +332,7 @@ class UmbrellaSampler:
         return self.us_pool
         
     
-    def run(self, tsteps , freq=0, repex=0, grstop=0, OutputWeights=True ):
+    def run(self, tsteps , freq=0, repex=0, grstop=0, OutputWeights=True, thin=1 ):
         
         steps = 0
         currentgr = 1.0
@@ -325,9 +360,9 @@ class UmbrellaSampler:
         while (steps < tsteps) and ( currentgr > grstop  ):
             
             if (self.us_pool):
-                self.us_pool.map( SampleWindow , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist) ) )
+                self.us_pool.map( SampleWindow , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
             else:
-                map( SampleWindow , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist) ) )
+                map( SampleWindow , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
             
             
             steps += freq
@@ -404,22 +439,28 @@ class UmbrellaSampler:
         burnmask = np.reshape( burnmask , (ts[0]*ts[1],1) )
         
         if (self.debug  ):
-            print "    [d]: Acor values " + str( ["%.2f" % elem for elem in self.zacor] )
+            print "    [d]: Acor values " + str( [float("%.2f" % elem) for elem in self.zacor] )
             print "    [d]: Percentage burned: " + str(100 - 100.0 * np.sum(burnmask) / np.size(burnmask) ) + "%, (" + str( int(np.sum(1-burnmask) )) + " of " + str(np.size(burnmask)) + ")"
         
         wgt = np.zeros(  (len(prob) , 0 ) )
         widx = 0
         # <f> = < f  /  (\sum \psi_i / z_i ) >
         
+        cutvals = np.zeros( len( self.wlist ) )
         
         for w in self.wlist:
          
-            myres = w.getbias( pos.T , prob )
+            myres = w.getbias( pos.T , prob )  - self.maxpsi[widx]
+            cutvals[widx] = np.sum( myres.flatten()>self.logpsicutoff )
+            myres = np.fmin( myres , self.logpsicutoff )
             if (myres.ndim==1):
                 myres = np.expand_dims( myres , axis=1 )
                 
             wgt = np.append(wgt ,  myres - np.log( self.z[widx] ), axis=1)
             widx+=1
+        
+        print "    [d]: Number cut= " + str( cutvals )
+        
         
         # Requires numpy 1.7+
         #maxW = np.max( wgt , axis=1, keepdims=True )
@@ -457,19 +498,29 @@ class UmbrellaSampler:
             shp = np.shape( np.array(self.wlist[w1].traj_pos) )
             traj_pos = np.reshape( np.array(self.wlist[w1].traj_pos) , ( shp[0]*shp[1],shp[2] ) )
             traj_pos = traj_pos.T
-            
-            #print traj_pos[:,2577], traj_prob[2577], self.lpf( traj_pos[:,2577] )
-            #print np.shape( traj_prob ) , np.shape( traj_pos )
-            #exit()
+             
             
             for  w2  in range(NW):
                 
                 AvgPsi[w1,:,w2] = self.wlist[w2].getbias( traj_pos , traj_prob )
                 
-        AvgPsi = AvgPsi - np.max( AvgPsi )
+        #AvgPsi = AvgPsi - np.max( AvgPsi ) 
+
+        self.maxpsi = np.zeros( NW ) 
+
+        for jj in range(NW):
+ 
+            zz = AvgPsi[:,:,jj].flatten()
+            kk = np.isfinite(zz)
+            self.maxpsi[jj] = np.min( zz[kk] )
+            AvgPsi[:,:,jj] = AvgPsi[:,:,jj] - self.maxpsi[jj]
+                
+        AvgPsi = np.fmin( AvgPsi , self.logpsicutoff )
         
         AP = []
         starts = []
+        if (self.debug):
+            print "    [d]: winpsi=", self.maxpsi
         
         for ii in range(NW):
              

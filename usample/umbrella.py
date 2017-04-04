@@ -1,5 +1,6 @@
 import numpy as np 
 from gr import GetGR 
+from makecv import getcv
 import copy
 
 def g_lnprob(p , lpf , biasinfo, lpfargs): 
@@ -17,13 +18,56 @@ def g_lnprob(p , lpf , biasinfo, lpfargs):
     
 def g_getbias( p , L , biasinfo ):
      
-    win_cent,center,cvfn,sigma,win_temp,tempfac = biasinfo
+    center,cvfn,sigma,tempfac = biasinfo
+     
+    # Tent code
+    cv = getcv( p , cvfn )
+    
+    cv = np.fmax( cv , 0 )
+    cv = np.fmin( cv , 1 )
+    
+    xp = 1.0 - np.abs(cv - center) / (1.0*sigma)
+    xp = np.array(xp)
+    L = np.array(L)
+    
+    kk = xp <= 0 
+    kc = np.invert(kk)
+    
+    xp[kk] = -np.inf
+    xp[kc] =  tempfac*L[kc] + (tempfac+1)*np.log(xp[kc] )
+    
+    return xp
+
+    #print tempfac, L , xp 
+    #return tempfac*(L+xp) + xp
+    
+    
+    
+    
     
     if (win_temp):    
         return L * tempfac
     
     if (win_cent):
-        cv = cvfn( p )
+
+        # Tent code
+        cv = getcv( p , cvfn )
+        
+        cv = np.fmax( cv , 0 )
+        cv = np.fmin( cv , 1 )
+        
+        xp = 1.0 - np.abs(cv - center) / (1.0*sigma)
+        xp = np.array(xp)
+
+        kk = xp <= 0 
+
+        xp[kk] = -np.inf
+        xp[np.invert(kk)] = np.log(xp[np.invert(kk)] )
+        
+        
+        return xp
+    
+        cv = getcv( p , cvfn )
         
         cv = np.fmax( cv , 0 )
         cv = np.fmin( cv , 1 )
@@ -34,6 +78,7 @@ def g_getbias( p , L , biasinfo ):
         return xp
     
     return 0
+
     
 def initiate_pool(i):
     pass
@@ -41,24 +86,14 @@ def initiate_pool(i):
 
 class Umbrella:
     
-    def __init__(self,lpf, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[], samplerargs={}, temp=None, center=None, cvfn=None,sigma=1   ):
+    def __init__(self,lpf, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[], samplerargs={}, temp=1.0, center=0.0, cvfn=None,sigma=1   ):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
         
-        if (temp is None):
-            self.temp = 1.0
-            self.win_temp = False
-        else:
-            self.temp = temp
-            self.win_temp = True 
+        self.temp = temp
             
-        if (center is None):
-            self.center = 0.5
-            self.win_cent = False
-        else:
-            self.center = center
-            self.win_cent = True
+        self.center = center
              
         self.sigma = sigma
         self.cvfn = cvfn
@@ -66,12 +101,13 @@ class Umbrella:
         self.tempfac = 1.0 / self.temp - 1.0 
         self.nows = nows
         
-        self.biasinfo = [self.win_cent,self.center,self.cvfn,self.sigma,self.win_temp,self.tempfac]
+        self.biasinfo = [self.center,self.cvfn,self.sigma,self.tempfac]
         
         # Initialize the positions around the ic  
         self.ic = np.array(ic).squeeze()
+        
         if (self.ic.ndim==1):
-            self.p = (1e-3) * np.random.normal(size=(nows, len(ic) ) ) + self.ic 
+            self.p = (1e-5) * np.random.normal(size=(nows, len(ic) ) ) + self.ic 
         else:
             self.p = self.ic
         
@@ -139,16 +175,20 @@ class Umbrella:
         return
     
  
-    def sample(self, nsteps):
+    def sample(self, nsteps, thin=1):
                 
         # Now just run the sampler.
         # If you wanted to swap out your own code, this is the place to do it.
+        counter = 0
         
         for (pos , prob , rstate , blobs ) in  self.sampler.sample( self.p , lnprob0=self.lnprob0 , blobs0=self.blobs0, iterations=nsteps ):
             
-            self.traj_pos.append( pos.copy() )
-            self.traj_prob.append( prob.reshape(np.shape(blobs)) - blobs  )
-            self.traj_blob.append( np.array(blobs).copy() )
+            if ((counter % thin )==0):
+                self.traj_pos.append( pos.copy() )
+                self.traj_prob.append( prob.reshape(np.shape(blobs)) - blobs  )
+                self.traj_blob.append( np.array(blobs).copy() )
+                
+            counter += 1
          
         self.p = pos
         self.lnprob0 = prob
