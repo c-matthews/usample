@@ -43,8 +43,12 @@ us = usample.UmbrellaSampler( log_prob_fn  , mpi=True, debug=True,  burn_acor=20
 # First, define some temperatures to run with. 
 #
 
-temps = np.linspace( 1 , 10 , 4 ) 
-centers = [0]#np.linspace( 0 , 1 , 3 )
+temps = [1] #np.linspace( 1 , 10 , 4 ) 
+centers = np.linspace( 0 , 1 , 3 )
+
+
+cvfn = ["grid", [np.array([-1.0,0]), np.array([1.0,0]), np.array([-1.0,1.0])] ]
+centers = [ [ii,jj] for ii in np.linspace( 0 , 1 , 3 ) for jj in np.linspace( 0 , 1 , 5 ) ]
 
 #
 # Then add an umbrella at each temperature. Use four walkers, and give some initial conditions

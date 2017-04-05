@@ -77,6 +77,7 @@ class UmbrellaSampler:
         self.burn_acor=burn_acor
         
         self.zacor = []
+        self.z = 0
         
         self.logpsicutoff = logpsicutoff
         
@@ -87,6 +88,7 @@ class UmbrellaSampler:
     
     def add_umbrellas(self, temperatures=[1.0], centers=[0.0], cvfn=None, ic=None, numwalkers=None, sampler=None):
          
+        centers = np.array(centers)
         
         ntemps = len(temperatures)
         ncenters = len(centers)
@@ -124,25 +126,30 @@ class UmbrellaSampler:
         
         for jj,cc in enumerate(centers):
             
-            if ( len(centers)>1):
-                
-                if (jj==0):
-                    ll = cc - centers[jj+1]
-                else:
-                    ll = centers[jj-1]
-                
-                if (jj==len(centers)-1 ):
-                    rr = 2*cc - centers[jj-1]
-                else:
-                    rr = centers[jj+1]
-                sigma = (rr-ll)*0.5
-                sigma = sigma #/ 2.0  # 2 sigma width
-                sigmas.append(sigma)
-                ic_cv = getic( cc , cvfn )
-                
-            else:
+            if (cvfn is None or len(centers)<2):
                 sigma = 1.0
                 ic_cv = ic
+            else:
+                
+                cvtype = cvfn[0]
+                
+                if (cvtype=="line"):
+                    mdist = centers - cc
+                    mdist = np.abs(mdist)
+                    print centers
+                    print mdist
+                    sigma = np.min(mdist[mdist>0]) 
+                
+                if (cvtype=="grid"):
+                    mdist = centers - cc
+                    mdist2 = np.abs(mdist[:,1])
+                    mdist1 = np.abs(mdist[:,0])
+                    sigma  = np.array([np.min(mdist1[mdist1>0]), np.min(mdist2[mdist2>0]) ] )
+                    
+                    
+                sigmas.append(sigma)
+                ic_cv = getic( cc , cvfn )
+                 
                 
             for tt in temperatures:
                 
@@ -194,10 +201,10 @@ class UmbrellaSampler:
             if (self.is_master() ):
                 print "    [d]: Total windows: " + str( nwin )
                 if (len(temperatures)>1):
-                    print "    [d]: Temperatures: " + str( [float("%.2f" % elem) for elem in temperatures] )
+                    print "    [d]: Temperatures: " + str( temperatures ) #[float("%.2f" % elem) for elem in temperatures] )
                 if (len(centers)>1):
-                    print "    [d]: Centers: " + str( [float("%.2f" % elem) for elem in centers] )
-                    print "    [d]: Sigmas: " + str( [float("%.2f" % elem) for elem in sigmas] )
+                    print "    [d]: Centers: " + str( centers ) # [float("%.2f" % elem) for elem in centers] )
+                    print "    [d]: Sigmas: " + str( np.array(sigmas) ) #[float("%.2f" % elem) for elem in sigmas] )
                     
                 if (self.mpi):
                     print "    [d]: Cores distributed as " + str( self.wranks )
@@ -208,6 +215,9 @@ class UmbrellaSampler:
         nu = Umbrella( self.lpf , ic , numwalkers, lpfargs=self.lpfargs, sampler=sampler, comm=comm, ranks=ranks, temp=temp, center=center, cvfn=cvfn,sigma=sigma )
         
         self.wlist.append( nu )
+          
+    def getz(self):
+        return self.z
           
             
     def run_repex(self, nrx):

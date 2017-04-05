@@ -13,76 +13,91 @@ def g_lnprob(p , lpf , biasinfo, lpfargs):
         bias = 0
       
     return (L + bias, bias)
-    
-    
-    
+
 def g_getbias( p , L , biasinfo ):
      
     center,cvfn,sigma,tempfac = biasinfo
-     
-    # Tent code
-    cv = getcv( p , cvfn )
     
-    cv = np.fmax( cv , 0 )
-    cv = np.fmin( cv , 1 )
-    
-    xp = 1.0 - np.abs(cv - center) / (1.0*sigma)
-    xp = np.array(xp)
-    L = np.array(L)
-    
-    kk = xp <= 0 
-    kc = np.invert(kk)
-    
-    xp[kk] = -np.inf
-    xp[kc] =  tempfac*L[kc] + (tempfac+1)*np.log(xp[kc] )
-    
-    return xp
-
-    #print tempfac, L , xp 
-    #return tempfac*(L+xp) + xp
-    
-    
-    
-    
-    
-    if (win_temp):    
+    if (cvfn is None):
         return L * tempfac
     
-    if (win_cent):
-
-        # Tent code
-        cv = getcv( p , cvfn )
-        
-        cv = np.fmax( cv , 0 )
-        cv = np.fmin( cv , 1 )
+    cvstyle = cvfn[0]
+    
+    if (cvstyle=="line"):
+    
+        cv = getcv( p , cvfn ) 
         
         xp = 1.0 - np.abs(cv - center) / (1.0*sigma)
         xp = np.array(xp)
-
+        L = np.array(L).squeeze()
+        
         kk = xp <= 0 
-
+        kc = np.invert(kk)
+        
         xp[kk] = -np.inf
-        xp[np.invert(kk)] = np.log(xp[np.invert(kk)] )
+        xp[kc] =  tempfac*L[kc] + np.log(xp[kc] )
         
-        
-        return xp
+        return xp 
     
-        cv = getcv( p , cvfn )
-        
-        cv = np.fmax( cv , 0 )
-        cv = np.fmin( cv , 1 )
-        
-        xp = (cv - center)
-        xp = -xp * xp / (2*sigma*sigma)
-        
-        return xp
+    if (cvstyle=="grid"):
     
-    return 0
+        cv = getcv( p , cvfn ) 
+        
+        xp  = 1.0 - np.abs(np.array(cv).T - center) / (1.0*sigma)
+        xp  = np.array(xp)
+        L = np.array(L).squeeze()
+        
+        kk = xp <= 0 
+        kc = np.invert(kk)
+        
+        xp[kk] = -np.inf
+        xp[kc] =  np.log(xp[kc] )
+        
+        if (xp.ndim==1):
+            xp = np.sum(xp)
+        else:
+            xp = np.sum(xp,axis=1).squeeze()
+            
+        
+        return xp+tempfac*L
 
+    return 0
+    #if (win_temp):    
+        #return L * tempfac
     
+    #if (win_cent):
+
+        ## Tent code
+        #cv = getcv( p , cvfn )
+        
+        #cv = np.fmax( cv , 0 )
+        #cv = np.fmin( cv , 1 )
+        
+        #xp = 1.0 - np.abs(cv - center) / (1.0*sigma)
+        #xp = np.array(xp)
+
+        #kk = xp <= 0 
+
+        #xp[kk] = -np.inf
+        #xp[np.invert(kk)] = np.log(xp[np.invert(kk)] )
+        
+        
+        #return xp
+    
+        #cv = getcv( p , cvfn )
+        
+        #cv = np.fmax( cv , 0 )
+        #cv = np.fmin( cv , 1 )
+        
+        #xp = (cv - center)
+        #xp = -xp * xp / (2*sigma*sigma)
+        
+        #return xp
+    
+    #return 0
+
 def initiate_pool(i):
     pass
-
 
 class Umbrella:
     
@@ -135,7 +150,6 @@ class Umbrella:
         # Setup the sampler. At the moment, just use emcee with g_lnprob as the log likelihood eval
         self.sampler = sampler(self.nows,  np.shape(self.p)[1] , g_lnprob, pool=self.pool , args=[self.lpf , self.biasinfo, lpfargs ], **samplerargs )
          
-    
     def getbias(self, p , L ):
         
         # return the log(bias) function.

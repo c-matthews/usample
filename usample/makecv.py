@@ -3,14 +3,17 @@ import numpy as np
 def getcv(pp, opts):
     
     if (opts is None):
-        return 0
+        return retzero(pp) 
     
     cvtype, vals = opts
     
     if (cvtype=="line"): 
         return getcv_line(pp, vals)
     
-    return 0
+    if (cvtype=="grid"): 
+        return getcv_grid(pp, vals)
+    
+    return retzero(pp) 
 
 def getic( cv, opts):
     
@@ -18,6 +21,9 @@ def getic( cv, opts):
     
     if (cvtype=="line"): 
         return getpp_line(cv, vals)
+    
+    if (cvtype=="grid"): 
+        return getpp_grid(cv, vals)
     
     return 0
 
@@ -45,6 +51,14 @@ def getcv_line(pp,vals):
     
     return cv
 
+def getcv_grid(pp,vals):
+    v1,v2,v3 = vals
+    
+    cv1 = getcv_line(pp,[v1,v2])
+    cv2 = getcv_line(pp,[v1,v3])
+    
+    return [cv1,cv2]
+
 def getpp_line(cv, vals):
 
     v1,v2 = vals
@@ -53,6 +67,19 @@ def getpp_line(cv, vals):
     
     return pp
 
+def getpp_grid(cv, vals):
+
+    v1,v2,v3 = vals
+
+    pp = v1 + cv[0]*(v2-v1) + cv[1]*(v3-v1)
+    
+    return pp
+
+
+def retzero(pp): 
+    if (pp.ndim==1):
+        return 0 
+    return np.zeros( np.shape(np.array(pp))[1]  )
 
 
 #class Makecvfn:
