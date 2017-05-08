@@ -213,7 +213,7 @@ def SN_like_walk(xw, dobs, covobs, zCMB, cH0, intsp,
         
     return like
 
-def read_jla_data(sn_list_name = None, cov_mat_dir = None, cohlens=False):
+def read_jla_data(sn_list_name = None, cov_mat_dir = None, covhost=False, cohlens=False):
     """
     read in JLA table
     
@@ -221,6 +221,9 @@ def read_jla_data(sn_list_name = None, cov_mat_dir = None, cohlens=False):
         file name containing the table
     cov_mat_dir: str
         path to directory containing covariance matrices
+    covhost: bool
+        set this to True, if delM is actively sampled parameter
+        otherwise, set this to False and delM to 0 
     cohlens: bool
         specifies whether to include coh and lens covariance
         these should not be included when scatter in M is modelled in the model
@@ -240,7 +243,12 @@ def read_jla_data(sn_list_name = None, cov_mat_dir = None, cohlens=False):
     # to see the definitions of these covariances
     # also see http://supernovae.in2p3.fr/sdss_snls_jla/ReadMe.html
     covobs = pyfits.getdata(cov_mat_dir+'/C_stat.fits')
-    for mat in ['pecvel', 'nonia', 'model', 'dust', 'cal', 'bias']:
+    if covhost:
+        covmatlist = ['pecvel', 'nonia', 'model', 'dust', 'cal', 'host', 'bias']
+    else:
+        covmatlist = ['pecvel', 'nonia', 'model', 'dust', 'cal', 'bias']
+        
+    for mat in covmatlist:
         covobs += pyfits.getdata(cov_mat_dir+'/C_'+mat+'.fits') 
 
     #if cohlens: 
