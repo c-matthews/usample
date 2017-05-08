@@ -135,9 +135,7 @@ class UmbrellaSampler:
                 
                 if (cvtype=="line"):
                     mdist = centers - cc
-                    mdist = np.abs(mdist)
-                    print centers
-                    print mdist
+                    mdist = np.abs(mdist) 
                     sigma = np.min(mdist[mdist>0]) 
                 
                 if (cvtype=="grid"):
