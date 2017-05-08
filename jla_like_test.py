@@ -266,10 +266,6 @@ if __name__ == '__main__':
     import emcee 
     from time import clock
 
-    # read JLA SNe list and covariance matrices; returned covobs is a combined cov. matrix
-    sn_list_file = 'jla_lcparams.txt'
-    cov_mat_dir = 'covmat'
-    dobs, covobs, zCMB, zhel, mst, emst, dset, biascor = read_jla_data(sn_list_file, cov_mat_dir, cohlens=False)
    
     # prepare parameter values
     # set to best fit values of Nielsen et al. 2016
@@ -306,7 +302,19 @@ if __name__ == '__main__':
     x0[:] = xmod[ia]; step[:] = scatter[ia]
 
     # names of active parameters
-    anames = np.array(names)[ia]; 
+    anames = np.array(names)[ia];
+    
+    # read JLA SNe list and covariance matrices; returned covobs is a combined cov. matrix
+    sn_list_file = 'jla_lcparams.txt'
+    cov_mat_dir = 'covmat'
+    # set covhost to True (i.e. include host covariance) if M offset delM is an active parameter
+    if 'delM' in anames:
+        covhost = True
+    else:
+        covhost = False
+        
+    dobs, covobs, zCMB, zhel, mst, emst, dset, biascor = read_jla_data(sn_list_file, cov_mat_dir, covhost=covhost, cohlens=False)
+ 
     # auxiliary data to pass onto likelihood function
     cH0 = 2.99792e5/H0 
     Om = np.arange(0., 1.2, 0.02)
