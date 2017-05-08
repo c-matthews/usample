@@ -51,10 +51,11 @@ def PushTraj(z):
 
 class UmbrellaSampler:
     
-    def __init__(self, lpf, lpfargs=[], debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0, logpsicutoff=700):
+    def __init__(self, lpf, lpfargs=[],lpfkwargs={} , debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0, logpsicutoff=700):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
+        self.lpfkwargs = lpfkwargs
          
         self.wlist = []
         
@@ -210,7 +211,7 @@ class UmbrellaSampler:
     
     def add_umbrella(self , ic , numwalkers , sampler=None, comm=None, ranks=None, temp=None, center=None, cvfn=None,sigma=0 ):
         
-        nu = Umbrella( self.lpf , ic , numwalkers, lpfargs=self.lpfargs, sampler=sampler, comm=comm, ranks=ranks, temp=temp, center=center, cvfn=cvfn,sigma=sigma )
+        nu = Umbrella( self.lpf , ic , numwalkers, lpfargs=self.lpfargs, lpfkwargs=self.lpfkwargs, sampler=sampler, comm=comm, ranks=ranks, temp=temp, center=center, cvfn=cvfn,sigma=sigma )
         
         self.wlist.append( nu )
           

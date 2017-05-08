@@ -3,9 +3,9 @@ from gr import GetGR
 from makecv import getcv
 import copy
 
-def g_lnprob(p , lpf , biasinfo, lpfargs): 
+def g_lnprob(p , lpf , biasinfo, lpfargs, lpfkwargs): 
         
-    L = lpf(p , *lpfargs ) 
+    L = lpf(p , *lpfargs, **lpfkwargs ) 
     
     if (np.isfinite(L) ):
         bias = g_getbias( p , L , biasinfo )
@@ -101,10 +101,11 @@ def initiate_pool(i):
 
 class Umbrella:
     
-    def __init__(self,lpf, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[], samplerargs={}, temp=1.0, center=0.0, cvfn=None,sigma=1   ):
+    def __init__(self,lpf, ic, nows, sampler=None, comm=None, ranks=None, lpfargs=[], lpfkwargs={}, samplerargs={}, temp=1.0, center=0.0, cvfn=None,sigma=1   ):
         
         self.lpf = lpf
         self.lpfargs = lpfargs
+        self.lpfkwargs = lpfkwargs
         
         self.temp = temp
             
@@ -148,7 +149,7 @@ class Umbrella:
                  
 
         # Setup the sampler. At the moment, just use emcee with g_lnprob as the log likelihood eval
-        self.sampler = sampler(self.nows,  np.shape(self.p)[1] , g_lnprob, pool=self.pool , args=[self.lpf , self.biasinfo, lpfargs ], **samplerargs )
+        self.sampler = sampler(self.nows,  np.shape(self.p)[1] , g_lnprob, pool=self.pool , args=[self.lpf , self.biasinfo, lpfargs, lpfkwargs ], **samplerargs )
          
     def getbias(self, p , L ):
         
