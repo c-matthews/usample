@@ -62,39 +62,7 @@ def g_getbias( p , L , biasinfo ):
         return xp+tempfac*L
 
     return 0
-    #if (win_temp):    
-        #return L * tempfac
-    
-    #if (win_cent):
 
-        ## Tent code
-        #cv = getcv( p , cvfn )
-        
-        #cv = np.fmax( cv , 0 )
-        #cv = np.fmin( cv , 1 )
-        
-        #xp = 1.0 - np.abs(cv - center) / (1.0*sigma)
-        #xp = np.array(xp)
-
-        #kk = xp <= 0 
-
-        #xp[kk] = -np.inf
-        #xp[np.invert(kk)] = np.log(xp[np.invert(kk)] )
-        
-        
-        #return xp
-    
-        #cv = getcv( p , cvfn )
-        
-        #cv = np.fmax( cv , 0 )
-        #cv = np.fmin( cv , 1 )
-        
-        #xp = (cv - center)
-        #xp = -xp * xp / (2*sigma*sigma)
-        
-        #return xp
-    
-    #return 0
 
 def initiate_pool(i):
     pass

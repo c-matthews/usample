@@ -4,7 +4,7 @@ import emus
 
 from umbrella import Umbrella
 from makecv import getic
-    
+
 
 def SampleWindow(z): 
     
@@ -20,10 +20,8 @@ def GetGR(ii):
 
 def GetAcor(ii):
     
-    #if (usampler.burn_acor>0):
     return usampler.wlist[ii].get_acor()
-    #else:
-    #    return 0
+
 
 def GatherStates(ii):
     
@@ -87,7 +85,7 @@ class UmbrellaSampler:
         
         
     
-    def add_umbrellas(self, temperatures=[1.0], centers=[0.0], cvfn=None, ic=None, numwalkers=None, sampler=None):
+    def add_umbrellas(self, temperatures=[1.0], centers=[0.0], cvfn=None, ic=None, numwalkers=None, sampler=None, samplerargs={}):
          
         centers = np.array(centers)
         
@@ -152,47 +150,10 @@ class UmbrellaSampler:
                 
             for tt in temperatures:
                 
-                self.add_umbrella(ic_cv,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],center=cc,cvfn=cvfn,sigma=sigma, temp=tt )
+                self.add_umbrella(ic_cv,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],center=cc,cvfn=cvfn,sigma=sigma, temp=tt, samplerargs=samplerargs )
                 
                 ii+=1
-            
-            
-        
-        
-        
-        
-        
-        #if (temperatures is not None):
-            #for tt in temperatures:
                 
-                #self.add_umbrella(ic,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],temp=tt )
-                #ii = ii + 1
-        
-        #if (centers is not None):
-            #sigmas = []
-            #for jj,cc in enumerate(centers):
-                
-                #if (jj==0):
-                    #ll = cc - centers[jj+1]
-                #else:
-                    #ll = centers[jj-1]
-                
-                #if (jj==len(centers)-1 ):
-                    #rr = 2*cc - centers[jj-1]
-                #else:
-                    #rr = centers[jj+1]
-                #sigma = (rr-ll)*0.5
-                #sigma = sigma / 2.0  # 2 sigma width
-                #sigmas.append(sigma)
-                #ic_cv = getic( cc , cvfn )
-                #self.add_umbrella(ic_cv,numwalkers,sampler, comm=self.w_comm[ii], ranks=self.wranks[ii],center=cc,cvfn=cvfn,sigma=sigma )
-                #ii = ii + 1
-            
-        #if ( (centers is not None) and (temperatures is not None) ):
-        #    self.repexTC = True
-        #    self.hightemp = len(temperatures)-1
-        #else:
-        #    self.repexTC = False
 
         
              
@@ -209,9 +170,9 @@ class UmbrellaSampler:
                     print "    [d]: Cores distributed as " + str( self.wranks )
                      
     
-    def add_umbrella(self , ic , numwalkers , sampler=None, comm=None, ranks=None, temp=None, center=None, cvfn=None,sigma=0 ):
+    def add_umbrella(self , ic , numwalkers , sampler=None, comm=None, ranks=None, temp=None, center=None, cvfn=None,sigma=0, samplerargs={} ):
         
-        nu = Umbrella( self.lpf , ic , numwalkers, lpfargs=self.lpfargs, lpfkwargs=self.lpfkwargs, sampler=sampler, comm=comm, ranks=ranks, temp=temp, center=center, cvfn=cvfn,sigma=sigma )
+        nu = Umbrella( self.lpf , ic , numwalkers, lpfargs=self.lpfargs, lpfkwargs=self.lpfkwargs, sampler=sampler, comm=comm, ranks=ranks, temp=temp, center=center, cvfn=cvfn,sigma=sigma, samplerargs=samplerargs )
         
         self.wlist.append( nu )
           
@@ -242,15 +203,6 @@ class UmbrellaSampler:
       
         evoddplus1 = evodd+1
         
-        #if (self.repexTC):
-        #    justC = np.arange( self.hightemp+1 , len(self.wlist) )
-        #    evodd = np.concatenate( (evodd, justC) )
-        #    evoddplus1 = np.concatenate((evoddplus1, [self.hightemp]*len(justC)) )
-            
-        #print evodd
-        #print evoddplus1
-        
-        #exit()
         
         attempts = 0
         accepts = 0
@@ -513,7 +465,6 @@ class UmbrellaSampler:
                 
                 AvgPsi[w1,:,w2] = self.wlist[w2].getbias( traj_pos , traj_prob )
                 
-        #AvgPsi = AvgPsi - np.max( AvgPsi ) 
 
         self.maxpsi = np.zeros( NW ) 
 
