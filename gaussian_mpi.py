@@ -67,7 +67,7 @@ if (us.is_master() ):
     x = np.append( pos , weights , axis=1 )
     x = np.append( x , prob , axis=1 )
 
-    np.savetxt(  'x.txt' , x )
+    np.savetxt(  'results_gaussian_mpi.txt' , x )
 
 
 

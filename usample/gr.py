@@ -1,6 +1,22 @@
+"""
+Code for computing the GR of the umbrella sampling windows.
+"""
 import numpy as np
 
 def GetGR(x):
+    """
+    Return the maximum GR across all dimensions, for multiple walkers.
+
+    Parameters
+    ----------
+    x : 3d array
+        NxWxD array, a trajectory of N steps with W walkers in D dimensions.
+
+    Returns
+    -------
+    gr : float
+        The maximum GR across all dimensions.
+    """
     
     xs = np.shape(x)
      
@@ -18,10 +34,22 @@ def GetGR(x):
 
 
 def compute_gr(x):
-    
+    """
+    Compute the Gelman-Rubin (GR) estimate for a trajectory.
+
+    Parameters
+    ----------
+    x : 2d array
+        NxW array, with a trajectory of N steps of W walkers. 
+
+    Returns
+    -------
+    gr : float
+        The GR statistic, with smaller numbers usually indicating better sampling.
+    """
+    # For information see
     # http://astrostatistics.psu.edu/RLectures/diagnosticsMCMC.pdf
-    # page 23
-    
+    # page 23 
     xs = np.shape(x) 
     
     N = xs[0]
@@ -40,12 +68,6 @@ def compute_gr(x):
     
     
     return R -1.0
-     
-    
-        
-        
-    
-    
-    
+
     
     

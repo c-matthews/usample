@@ -1,3 +1,9 @@
+"""
+Umbrella sampling wrapper, making heavy use of the original EMUS code.
+
+
+
+"""
 import numpy as np
 import random
 import emus 
@@ -6,28 +12,82 @@ from umbrella import Umbrella
 from makecv import getic
 
 
-def SampleWindow(z): 
-    
+def SampleWindow(z):     
+    """
+    Global helper function used to sample a given window.
+
+    Parameters
+    ----------
+    z : list
+        List indicating which umbrella to sample, z=[WindowIndex,NumberOfSteps,NumberToThin]. 
+    """ 
     ii,nsteps,thin = z
     
     usampler.wlist[ii].sample(nsteps,thin=thin)
     
     return
 
-def GetGR(ii):
+def GetGR(ii):    
+    """
+    Return the GR of a given window.
+
+    Parameters
+    ----------
+    ii : integer
+        The index of the umbrella to compute the GR for.
+
+    Returns
+    -------
+    gr : float
+        The GR of window ii.
+    """
     
     return usampler.wlist[ii].gr
 
-def GetAcor(ii):
+def GetAcor(ii):    
+    """
+    Return the Acor value of a given window.
+
+    Parameters
+    ----------
+    ii : integer
+        The index of the umbrella to compute the Acor value of.
+
+    Returns
+    -------
+    acor : float
+        The autocorrelation estimate for window ii.
+    """
     
     return usampler.wlist[ii].get_acor()
 
 
-def GatherStates(ii):
+def GatherStates(ii):    
+    """
+    Return the current state (position/probability/bias) of walkers in a given window.
+
+    Parameters
+    ----------
+    ii : integer
+        The index of the umbrella to get the state of.
+
+    Returns
+    -------
+    state : list
+        The state of window ii.
+    """
     
     return usampler.wlist[ii].get_state()
 
-def PushStates(z):
+def PushStates(z):    
+    """
+    Set the state of a given window.
+
+    Parameters
+    ----------
+    z : list
+        With z=[WindowIndex, State], this sets the state of umbrella WindowIndex to State. 
+    """
       
     ii,state = z
     
@@ -35,11 +95,32 @@ def PushStates(z):
     
     return  
  
-def GatherTraj(ii):
+def GatherTraj(ii):    
+    """
+    Return the current trajectory (position/probability/bias) of walkers in a given window.
+
+    Parameters
+    ----------
+    ii : integer
+        The index of the umbrella to get the trajectory of.
+
+    Returns
+    -------
+    state : list
+        The trajectory of window ii.
+    """
     
     return usampler.wlist[ii].get_traj()
 
 def PushTraj(z):
+    """
+    Set the trajectory of a given window.
+
+    Parameters
+    ----------
+    z : list
+        With z=[WindowIndex, State], this sets the trajectory of umbrella WindowIndex to State. 
+    """
       
     ii,state = z
     
@@ -48,9 +129,40 @@ def PushTraj(z):
     return  
 
 class UmbrellaSampler:
+    """
+    A class container with helper functions for using the umbrella sampling method.
+    """
     
     def __init__(self, lpf, lpfargs=[],lpfkwargs={} , debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0, logpsicutoff=700):
-        
+        """
+        Initializer for the umbrella sampler class.
+
+        Parameters
+        ----------
+        lpf : function
+            The function handle for the log probability to be sampled.
+        lpfargs : list (optional)
+            Arguments for the LPF function.
+        lpfkwargs : dictionary (optional)
+            KwArgs for the LPF function.
+        debug : boolean (optional)
+            Whether to print useful debug information.
+        evsolves : integer (optional)
+            The number of eigenvector solve iterations to do in the EMUS scheme.
+        mpi : boolean (optional)
+            Whether to use MPI4PY to parallelize the sampling, or not.
+        burn_pc : float (optional)
+            The maximum fraction of the trajectory to be burn in initialization (0.1 corresponds to 10percent).
+        burn_acor : integer (optional)
+            The maximum number of 'acor'-times to be used for burn in.
+        logpsicutoff : float (optional)
+            The maximum value of the log of the biasing function that should be used as a cutoff.
+
+        Returns
+        -------
+        usample : UmbrellaSampler
+            The initialized umbrella sampler object.
+        """        
         self.lpf = lpf
         self.lpfargs = lpfargs
         self.lpfkwargs = lpfkwargs
@@ -86,7 +198,27 @@ class UmbrellaSampler:
         
     
     def add_umbrellas(self, temperatures=[1.0], centers=[0.0], cvfn=None, ic=None, numwalkers=None, sampler=None, samplerargs={}):
-         
+        """
+        Add, and initialize (but don't sample from) some umbrella window distributions.
+        Takes a list of temperatures and centers for stratifying in temperature and cv-space.
+
+        Parameters
+        ----------
+        temperatures : list 
+            A list of floats to be used as temperatures in the distributions.
+        centers : list 
+            A list of centers for the biasing distributions.
+        cvfn : list
+            A list specifying how the collective variable is defined.
+        ic : Array 
+            The initial point to sample from.
+        numwalkers : integer
+            The number of walkers to use in the umbrellas.
+        sampler : ParallelSampler
+            The sampler object to call to sample within each umbrella.
+        samplerargs : dictionary
+            Any additional arguments to pass to the sampler at sample-time. 
+        """ 
         centers = np.array(centers)
         
         ntemps = len(temperatures)
@@ -171,17 +303,57 @@ class UmbrellaSampler:
                      
     
     def add_umbrella(self , ic , numwalkers , sampler=None, comm=None, ranks=None, temp=None, center=None, cvfn=None,sigma=0, samplerargs={} ):
-        
+        """
+        Adds one umbrella to the umbrella sampling list.
+
+        Parameters
+        ----------
+        ic : Array 
+            The initial point to sample from.
+        numwalkers : integer
+            The number of walkers to use in the umbrellas.
+        sampler : ParallelSampler
+            The sampler object to call to sample within each umbrella.
+        comm : MPI4PY Communicator
+            The Communicator object for this umbrella to use.
+        ranks : list
+            A list of integers specifying which MPI ranks should be used for this umbrella. 
+        temp : float 
+            The temperature that should be used for this distribution.
+        center : float
+            The central point of the umbrellas biasing distribution.
+        cvfn : list
+            A list specifying how the collective variable is defined.
+        sigma : float
+            The scale parameter for the biasing distribution.
+        samplerargs : dictionary
+            Any additional arguments to pass to the sampler at sample-time. 
+        """ 
         nu = Umbrella( self.lpf , ic , numwalkers, lpfargs=self.lpfargs, lpfkwargs=self.lpfkwargs, sampler=sampler, comm=comm, ranks=ranks, temp=temp, center=center, cvfn=cvfn,sigma=sigma, samplerargs=samplerargs )
         
         self.wlist.append( nu )
           
     def getz(self):
+        """
+        Returns the list of weights for the different windows.
+
+        Returns
+        -------
+        z : list
+            A list of floats corresponding to the relative weight of each window.
+        """        
         return self.z
           
             
     def run_repex(self, nrx):
-        
+        """
+        Performs a replica exchange (repex) step on the current set of umbrellas.
+
+        Parameters
+        ----------
+        nrx : integer
+            The number of replica exchange swaps to perform. 
+        """   
         if (nrx<1):
             return
         
@@ -269,7 +441,14 @@ class UmbrellaSampler:
             
     
     def get_gr(self):
-        
+        """
+        Returns the maximum GR value from all umbrella windows.
+
+        Returns
+        -------
+        gr : float
+            The maximum GR statistic from all windows.
+        """   
         if (self.us_pool):
             gr = self.us_pool.map( GetGR , range(0,len(self.wlist))  )
         else:
@@ -278,7 +457,14 @@ class UmbrellaSampler:
         return np.max( gr )
     
     def get_static_pool(self):
-        
+        """
+        Allows access to the static MPIPool used by the sampler.
+ 
+        Returns
+        -------
+        uspool : MPIPool
+            The MPIPool object used by the umbrella sampler.
+        """  
         if (not self.mpi):
             return None
         
@@ -294,7 +480,35 @@ class UmbrellaSampler:
         
     
     def run(self, tsteps , freq=0, repex=0, grstop=0, OutputWeights=True, thin=1 ):
-        
+        """
+        Rub the sampling on the umbrellas.
+
+        Parameters
+        ----------
+        tsteps : integer
+            The number of steps to run, per walker, per window. 
+        freq : integer
+            The sampler will run bursts of 'freq' steps, calculating the GR and other statistics in between.
+        repex : integer
+            The number of attempted replica exchange steps every 'freq' steps.
+        grstop : float
+            The sampler will stop if the maximum GR falls below this value.
+        OutputWeights : boolean
+            Whether to compute the umbrella weights at the end of sampling. 
+            One only needs to compute the weights if all sampling is completed.
+        thin : integer
+            The number of steps to thin the trajectory by, eg thin=3 only uses every third step.
+            
+
+        Returns
+        -------
+        pos : list
+            If OutputWeights is True, returns a list of trajectories for each walker over all windows.
+        wgt : list
+            If OutputWeights is True, returns a list of sample weights for each point.
+        prob : list
+            If OutputWeights is True, returns a list of the log probabilities of each sampled point.
+        """  
         steps = 0
         currentgr = 1.0
         
@@ -445,7 +659,14 @@ class UmbrellaSampler:
             
             
     def get_AvgPsi(self):
+        """
+        Computes the average of the biasing functions psi. 
         
+        Returns
+        -------
+        avgpsi : list
+            Averages of each biasing function in each umbrella.
+        """ 
         NW = len(self.wlist)
         NS = np.size(self.wlist[0].traj_prob)
         Nwalkers = np.shape(self.wlist[0].traj_prob)[1] 
@@ -516,7 +737,21 @@ class UmbrellaSampler:
     
     
     def Solve_EMUS(self, evsolves=3 ):
-        
+        """
+        Computes the weights and overlap matrix used in the EMUS method.
+
+        Parameters
+        ----------
+        evsolves : integer
+            The number of eigenvalue iterations used in the EMUS method.
+
+        Returns
+        -------
+        z : 1d array
+            The relative weights for the umbrella windows.
+        F : 2d array
+            The overlap matrix, which has unit eigenvector z.
+        """ 
         AvgPsi = self.get_AvgPsi()
         
         self.z , self.F = emus.calculate_zs( AvgPsi, nMBAR=evsolves )
@@ -525,7 +760,9 @@ class UmbrellaSampler:
     
                 
     def close_pools(self):
-        
+        """
+        Closes the MPI pools to prevent dangling threads.
+        """ 
         if (not self.mpi):
             return
         
@@ -538,6 +775,14 @@ class UmbrellaSampler:
                 w.pool.close()
         
     def is_master(self):
+        """
+        Helper function to discern if a thread is the master thread or not.
+
+        Returns
+        -------
+        ismaster : boolean
+            Whether the thread is the master thread (==rank 0) or not.
+        """ 
         if (not self.mpi):
             return True
         

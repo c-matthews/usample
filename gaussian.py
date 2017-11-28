@@ -65,6 +65,6 @@ pos,weights,prob = us.run(10000 , freq=1000, repex=10   )
 x = np.append( pos , weights , axis=1 )
 x = np.append( x , prob , axis=1 )
 
-np.savetxt(  'x.txt' , x )
+np.savetxt(  'results_gaussian.txt' , x )
  
 
