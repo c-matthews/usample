@@ -23,7 +23,7 @@ def log_prob_fn(p ):
     y=p[1]
     
     # Two Gaussian distributions, centered on +/- 1 
-    lpf = np.log( np.exp(-(x-1)**2) + np.exp(-(x+1)**2  ))
+    lpf = np.log( np.exp(-16*(x-1)**2) + np.exp(-16*(x+1)**2  ))
     # And an independent Gaussian in another direction
     lpf -= 0.5*y*y
      
@@ -64,7 +64,7 @@ temps = [1,5]
 
 #
 # Once we have defined the umbrellas as above, we can add them all together using the following routine: 
-us.add_umbrellas( temperatures=temps, centers=centers, cvfn=cvfn , numwalkers=4 , ic=np.array([0,0]) , sampler=emcee.EnsembleSampler )
+us.add_umbrellas( temperatures=temps, centers=centers, cvfn=cvfn , numwalkers=8 , ic=np.array([0,0]) , sampler=emcee.EnsembleSampler )
 
 # 
 # Then run for 10000 steps in each window.
@@ -72,7 +72,7 @@ us.add_umbrellas( temperatures=temps, centers=centers, cvfn=cvfn , numwalkers=4 
 # Try to replica exchange [repex]-many walkers every [freq] steps
 #
 
-pos,weights,prob = us.run(10000 , freq=100, repex=0    )
+pos,weights,prob = us.run(10000 , freq=100, repex=10    )
 
 #
 # We save the output
