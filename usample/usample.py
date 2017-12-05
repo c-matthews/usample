@@ -271,7 +271,7 @@ class UmbrellaSampler:
                     
                     
                 sigmas.append(sigma)
-                ic_cv = getic( cc , cvfn )
+                ic_cv = get_ic( cc , cvfn )
                  
                 
             for tt in temperatures:
@@ -388,8 +388,8 @@ class UmbrellaSampler:
                 pi = self.wlist[wn].lnprob0[ii] - bias_i_in_i
                 pj = self.wlist[wnp1].lnprob0[jj] - bias_j_in_j
                 
-                bias_i_in_j = self.wlist[wnp1].getbias(  self.wlist[wn].p[ii] , pi )
-                bias_j_in_i = self.wlist[wn].getbias( self.wlist[wnp1].p[jj]  , pj )
+                bias_i_in_j = self.wlist[wnp1].get_bias(  self.wlist[wn].p[ii] , pi )
+                bias_j_in_i = self.wlist[wn].get_bias( self.wlist[wnp1].p[jj]  , pj )
                 
                 newE = bias_i_in_j + bias_j_in_i
                 oldE = bias_i_in_i + bias_j_in_j
@@ -619,7 +619,7 @@ class UmbrellaSampler:
         
         for w in self.wlist:
          
-            myres = w.getbias( pos.T , prob )  - self.maxpsi[widx]
+            myres = w.get_bias( pos.T , prob )  - self.maxpsi[widx]
             cutvals[widx] = np.sum( myres.flatten()>self.logpsicutoff )
             myres = np.fmin( myres , self.logpsicutoff )
             if (myres.ndim==1):
@@ -678,7 +678,7 @@ class UmbrellaSampler:
             
             for  w2  in range(NW):
                 
-                AvgPsi[w1,:,w2] = self.wlist[w2].getbias( traj_pos , traj_prob )
+                AvgPsi[w1,:,w2] = self.wlist[w2].get_bias( traj_pos , traj_prob )
                 
 
         self.maxpsi = np.zeros( NW ) 
