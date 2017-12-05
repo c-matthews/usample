@@ -3,7 +3,7 @@ Code for computing the GR of the umbrella sampling windows.
 """
 import numpy as np
 
-def GetGR(x):
+def get_gr(x):
     """
     Return the maximum GR across all dimensions, for multiple walkers.
 

@@ -3,8 +3,8 @@
 Class object for each individual umbrella.
 """
 import numpy as np 
-from gr import GetGR 
-from makecv import getcv
+from gr import get_gr 
+from makecv import get_cv
 import copy
 
 def g_lnprob(p , lpf , biasinfo, lpfargs, lpfkwargs): 
@@ -31,13 +31,13 @@ def g_lnprob(p , lpf , biasinfo, lpfargs, lpfkwargs):
     L = lpf(p , *lpfargs, **lpfkwargs ) 
     
     if (np.isfinite(L) ):
-        bias = g_getbias( p , L , biasinfo )
+        bias = g_get_bias( p , L , biasinfo )
     else:
         bias = 0
       
     return (L + bias, bias)
 
-def g_getbias( p , L , biasinfo ):
+def g_get_bias( p , L , biasinfo ):
     """
     A global function returning the bias imposed by the umbrella.
 
@@ -65,7 +65,7 @@ def g_getbias( p , L , biasinfo ):
     
     if (cvstyle=="line"):
     
-        cv = getcv( p , cvfn ) 
+        cv = get_cv( p , cvfn ) 
         
         xp = 1.0 - np.abs(cv - center) / (1.0*sigma)
         xp = np.array(xp)
@@ -81,7 +81,7 @@ def g_getbias( p , L , biasinfo ):
     
     if (cvstyle=="grid"):
     
-        cv = getcv( p , cvfn ) 
+        cv = get_cv( p , cvfn ) 
         
         xp  = 1.0 - np.abs(np.array(cv).T - center) / (1.0*sigma)
         xp  = np.array(xp)
@@ -202,7 +202,7 @@ class Umbrella:
         # Setup the sampler. At the moment, just use emcee with g_lnprob as the log likelihood eval
         self.sampler = sampler(self.nows,  np.shape(self.p)[1] , g_lnprob, pool=self.pool , args=[self.lpf , self.biasinfo, lpfargs, lpfkwargs ], **samplerargs )
          
-    def getbias(self, p , L ):
+    def get_bias(self, p , L ):
         """
         Return the log of the biasing function.
 
@@ -218,7 +218,7 @@ class Umbrella:
         bias : float
             The bias introduced by the umbrella object.
         """ 
-        return g_getbias( p , L , self.biasinfo )
+        return g_get_bias( p , L , self.biasinfo )
     
     def get_state(self):
         """
@@ -322,7 +322,7 @@ class Umbrella:
         self.blobs0 = blobs
         self.tsteps += nsteps 
         
-        self.gr =  GetGR( np.array(self.traj_pos ) )
+        self.gr =  get_gr( np.array(self.traj_pos ) )
         
         try:
             self.acorval = np.max( self.sampler.acor )

@@ -1,18 +1,15 @@
 """
 Umbrella sampling wrapper, making heavy use of the original EMUS code.
-
-
-
 """
 import numpy as np
 import random
 import emus 
 
 from umbrella import Umbrella
-from makecv import getic
+from makecv import get_ic
 
 
-def SampleWindow(z):     
+def sample_window(z):     
     """
     Global helper function used to sample a given window.
 
@@ -27,7 +24,7 @@ def SampleWindow(z):
     
     return
 
-def GetGR(ii):    
+def get_gr(ii):    
     """
     Return the GR of a given window.
 
@@ -44,7 +41,7 @@ def GetGR(ii):
     
     return usampler.wlist[ii].gr
 
-def GetAcor(ii):    
+def get_acor(ii):    
     """
     Return the Acor value of a given window.
 
@@ -62,7 +59,7 @@ def GetAcor(ii):
     return usampler.wlist[ii].get_acor()
 
 
-def GatherStates(ii):    
+def gather_states(ii):    
     """
     Return the current state (position/probability/bias) of walkers in a given window.
 
@@ -79,7 +76,7 @@ def GatherStates(ii):
     
     return usampler.wlist[ii].get_state()
 
-def PushStates(z):    
+def push_states(z):    
     """
     Set the state of a given window.
 
@@ -95,7 +92,7 @@ def PushStates(z):
     
     return  
  
-def GatherTraj(ii):    
+def gather_traj(ii):    
     """
     Return the current trajectory (position/probability/bias) of walkers in a given window.
 
@@ -108,11 +105,10 @@ def GatherTraj(ii):
     -------
     state : list
         The trajectory of window ii.
-    """
-    
+    """ 
     return usampler.wlist[ii].get_traj()
 
-def PushTraj(z):
+def push_traj(z):
     """
     Set the trajectory of a given window.
 
@@ -120,8 +116,7 @@ def PushTraj(z):
     ----------
     z : list
         With z=[WindowIndex, State], this sets the trajectory of umbrella WindowIndex to State. 
-    """
-      
+    """ 
     ii,state = z
     
     usampler.wlist[ii].set_traj(state)
@@ -131,8 +126,7 @@ def PushTraj(z):
 class UmbrellaSampler:
     """
     A class container with helper functions for using the umbrella sampling method.
-    """
-    
+    """ 
     def __init__(self, lpf, lpfargs=[],lpfkwargs={} , debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0, logpsicutoff=700):
         """
         Initializer for the umbrella sampler class.
@@ -333,7 +327,7 @@ class UmbrellaSampler:
         
         self.wlist.append( nu )
           
-    def getz(self):
+    def get_z(self):
         """
         Returns the list of weights for the different windows.
 
@@ -359,9 +353,9 @@ class UmbrellaSampler:
         
         
         if (self.us_pool):
-            states = self.us_pool.map( GatherStates , range(0,len(self.wlist))  )
+            states = self.us_pool.map( gather_states , range(0,len(self.wlist))  )
         else:
-            states = map( GatherStates , range(0,len(self.wlist))  )
+            states = map( gather_states , range(0,len(self.wlist))  )
         
         for ii, z in enumerate( states ):
             self.wlist[ii].set_state(z)
@@ -431,9 +425,9 @@ class UmbrellaSampler:
         
         
         if (self.us_pool):
-            states = self.us_pool.map( PushStates , zip( range(0,len(self.wlist)) , states )  )
+            states = self.us_pool.map( push_states , zip( range(0,len(self.wlist)) , states )  )
         else:
-            states = map( PushStates , zip( range(0,len(self.wlist)) , states )  )
+            states = map( push_states , zip( range(0,len(self.wlist)) , states )  )
             
         if (self.debug):
             accrate = accepts / (1.0*attempts)
@@ -450,9 +444,9 @@ class UmbrellaSampler:
             The maximum GR statistic from all windows.
         """   
         if (self.us_pool):
-            gr = self.us_pool.map( GetGR , range(0,len(self.wlist))  )
+            gr = self.us_pool.map( get_gr , range(0,len(self.wlist))  )
         else:
-            gr = map( GetGR , range(0,len(self.wlist))  )
+            gr = map( get_gr , range(0,len(self.wlist))  )
             
         return np.max( gr )
     
@@ -479,7 +473,7 @@ class UmbrellaSampler:
         return self.us_pool
         
     
-    def run(self, tsteps , freq=0, repex=0, grstop=0, OutputWeights=True, thin=1 ):
+    def run(self, tsteps , freq=0, repex=0, grstop=0, output_weights=True, thin=1 ):
         """
         Rub the sampling on the umbrellas.
 
@@ -493,7 +487,7 @@ class UmbrellaSampler:
             The number of attempted replica exchange steps every 'freq' steps.
         grstop : float
             The sampler will stop if the maximum GR falls below this value.
-        OutputWeights : boolean
+        output_weights : boolean
             Whether to compute the umbrella weights at the end of sampling. 
             One only needs to compute the weights if all sampling is completed.
         thin : integer
@@ -503,11 +497,11 @@ class UmbrellaSampler:
         Returns
         -------
         pos : list
-            If OutputWeights is True, returns a list of trajectories for each walker over all windows.
+            If output_weights is True, returns a list of trajectories for each walker over all windows.
         wgt : list
-            If OutputWeights is True, returns a list of sample weights for each point.
+            If output_weights is True, returns a list of sample weights for each point.
         prob : list
-            If OutputWeights is True, returns a list of the log probabilities of each sampled point.
+            If output_weights is True, returns a list of the log probabilities of each sampled point.
         """  
         steps = 0
         currentgr = 1.0
@@ -535,13 +529,13 @@ class UmbrellaSampler:
         while (steps < tsteps) and ( currentgr > grstop  ):
             
             if (self.us_pool):
-                self.us_pool.map( SampleWindow , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
+                self.us_pool.map( sample_window , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
             else:
-                map( SampleWindow , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
+                map( sample_window , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
             
             
             steps += freq
-            if (self.debug and OutputWeights):
+            if (self.debug and output_weights):
                 print " :- Completed " + str(steps) + " of " + str(tsteps) + " iterations."
               
             currentgr = np.max( self.get_gr() ) 
@@ -553,13 +547,13 @@ class UmbrellaSampler:
             
         
         if (self.us_pool):
-            zacor = self.us_pool.map( GetAcor ,  range(0,len(self.wlist))   )
+            zacor = self.us_pool.map( get_acor ,  range(0,len(self.wlist))   )
         else:
-            zacor = map( GetAcor ,  range(0,len(self.wlist))   )
+            zacor = map( get_acor ,  range(0,len(self.wlist))   )
         
         self.zacor = zacor
 
-        if (not OutputWeights):
+        if (not output_weights):
             if (self.us_pool):
                 if (not self.staticpool):
                     self.us_pool.close()
@@ -567,14 +561,14 @@ class UmbrellaSampler:
 
 
         if (self.us_pool):
-            Traj = self.us_pool.map( GatherTraj ,  range(0,len(self.wlist))   )
-            map( PushTraj , zip( range(0,len(self.wlist)) , Traj ) )
+            Traj = self.us_pool.map( gather_traj ,  range(0,len(self.wlist))   )
+            map( push_traj , zip( range(0,len(self.wlist)) , Traj ) )
             if (not self.staticpool):
                 self.us_pool.close()
             
             
 
-        self.Solve_EMUS( self.evsolves )
+        self.solve_emus( self.evsolves )
         
         if (self.debug):
             print "    [d]: z values " + str( self.z )
@@ -658,7 +652,7 @@ class UmbrellaSampler:
         
             
             
-    def get_AvgPsi(self):
+    def get_avg_psi(self):
         """
         Computes the average of the biasing functions psi. 
         
@@ -736,7 +730,7 @@ class UmbrellaSampler:
     
     
     
-    def Solve_EMUS(self, evsolves=3 ):
+    def solve_emus(self, evsolves=3 ):
         """
         Computes the weights and overlap matrix used in the EMUS method.
 
@@ -752,7 +746,7 @@ class UmbrellaSampler:
         F : 2d array
             The overlap matrix, which has unit eigenvector z.
         """ 
-        AvgPsi = self.get_AvgPsi()
+        AvgPsi = self.get_avg_psi()
         
         self.z , self.F = emus.calculate_zs( AvgPsi, nMBAR=evsolves )
         
