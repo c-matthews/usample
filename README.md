@@ -9,9 +9,11 @@ Companion article: Umbrella sampling: a powerful method to sample tails of distr
 
 ### Using the package
 
-There are several examples included to use the package: sampling a Gaussian distribution, a double-well multimodal distribution, and a cosmological example.
+There are several examples included to use the package: sampling a Gaussian distribution, a double-well multimodal distribution, and a cosmological example. They can be run as:   
+`python gaussian.py` for the 2D Gaussian example  
+`mpirun python gaussian_mpi.py` to run the sampler in parallel, if MPI4PY is available.
 
-The package is easy to set up and run, it requires only the sampler (emcee is the preferred choice), the log posterior function and an initial condition. See the examples for code snippets.
+The package is easy to set up and run, it requires only the sampler (emcee is the preferred choice), the log posterior function and an initial condition. See the example files for snippets on how to set up the sampler.
 
 ### License
 
