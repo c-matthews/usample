@@ -3,9 +3,9 @@ Umbrella Sampling package `USample` for Python 2.7
 
 A lightweight python implementation of the umbrella sampling method for use in efficient calculation of tail probabilities in various data science applications.
 
-Companion article: Umbrella sampling: a powerful method to sample tails of distributions
-Charles Matthews, Jonathan Weare, Andrey Kravtsov and Elise Jennings
-Available here: <https://arxiv.org/> (link forthcoming)
+Companion article: Umbrella sampling: a powerful method to sample tails of distributions  
+  Charles Matthews, Jonathan Weare, Andrey Kravtsov and Elise Jennings
+  Available here: <https://arxiv.org/> (link forthcoming)
 
 ### Using the package
 
