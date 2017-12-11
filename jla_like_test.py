@@ -10,7 +10,9 @@
 #    https://zenodo.org/record/34487
 #  
 #    The Nielsen et al. likelihood is modified to allow for the evolution of the
-#    mean color correction (eta_c) and stretch (eta_x 
+#    mean color correction (eta_c) and stretch (eta_x)
+#
+from __future__ import absolute_import
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve, block_diag
 from scipy import interpolate as intp
@@ -21,6 +23,9 @@ def dL_init(zCMB, zhel, Om, Oml, bbox, int_tab_file_name):
     d_L (without c/H0 factor). The table has dimensions (Nsn,Ng,Ng), 
     where Nsn = the number of SNe in the sample, and Ng x Ng is a grid 
     of Om0, Oml0 for which distances were calculated for each z_SN
+    
+    dL_int_tab_740x60x60.npy example table with 60x60 grid for 740 SNe is provided
+    in the repository, Other tables can be generated using 
     
     Ng is the size of the vectors Om, Oml that define the grid of Om0 and Oml0 values on 
     which the table was tabulated. 
@@ -304,7 +309,7 @@ def read_jla_data(sn_list_name = None, cov_mat_dir = None, covhost=False, cohlen
 
     return dobs, covobs, zCMB, zhel, mst, emst, dset, biascor
     
-
+import sys
     
 if __name__ == '__main__':
     import numpy as np
@@ -312,6 +317,13 @@ if __name__ == '__main__':
     import emcee 
     from time import clock
 
+    if len(sys.argv) > 1:
+        print("will assume that SN data is in the directory %s"%sys.argv[1])
+        data_dir = sys.argv[1]
+    else:
+        print("path to data directory is not provided")
+        print("usage: python jla_like_test.py data_dir")
+        exit(1)
    
     # prepare parameter values
     # set to best fit values of Nielsen et al. 2016
@@ -351,8 +363,8 @@ if __name__ == '__main__':
     anames = np.array(names)[ia];
     
     # read JLA SNe list and covariance matrices; returned covobs is a combined cov. matrix
-    sn_list_file = 'jla_lcparams.txt'
-    cov_mat_dir = 'covmat'
+    sn_list_file = data_dir+'jla_lcparams.txt'
+    cov_mat_dir = data_dir+'covmat'
     # set covhost to True (i.e. include host covariance) if M offset delM is an active parameter
     if 'delM' in anames:
         covhost = True
@@ -366,7 +378,7 @@ if __name__ == '__main__':
     Om = np.arange(0., 1.2, 0.02)
     Oml = np.arange(0., 1.2, 0.02)
     bbox = [0.,1.2, 0., 1.2]
-    int_tab_file_name = 'dL_int_tab_740x60x60.npy'
+    int_tab_file_name = data_dir+'dL_int_tab_740x60x60.npy'
 
     print("initializing the interpolation tables. This will take a few seconds...")
     intsp = dL_init(zCMB, zhel, Om, Oml, bbox, int_tab_file_name)
