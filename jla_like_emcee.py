@@ -262,10 +262,17 @@ def read_jla_data(sn_list_name = None, cov_mat_dir = None, covhost=False, cohlen
 
     
 if __name__ == '__main__':
-    import numpy as np
+    import sys
     import emcee 
     from time import clock
 
+    if len(sys.argv) > 1:
+        #print("will assume that SN data is in the directory %s"%sys.argv[1])
+        data_dir = sys.argv[1]
+    else:
+        print("path to data directory is not provided")
+        print("usage: python jla_like_test.py data_dir")
+        exit(1)
    
     # prepare parameter values
     # set to best fit values of Nielsen et al. 2016
@@ -293,7 +300,7 @@ if __name__ == '__main__':
     ipar_active = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1])
 
     # construct dictionary of parameters 
-    kwargs = dict(zip(names, xmod))
+    kwargs = dict(list(zip(names, xmod)))
 
     # extract the active parameter vector
     ia = (ipar_active==1)
@@ -305,8 +312,8 @@ if __name__ == '__main__':
     anames = np.array(names)[ia];
     
     # read JLA SNe list and covariance matrices; returned covobs is a combined cov. matrix
-    sn_list_file = 'jla_lcparams.txt'
-    cov_mat_dir = 'covmat'
+    sn_list_file = data_dir+'jla_lcparams.txt'
+    cov_mat_dir = data_dir+'covmat'
     # set covhost to True (i.e. include host covariance) if M offset delM is an active parameter
     if 'delM' in anames:
         covhost = True
@@ -320,20 +327,19 @@ if __name__ == '__main__':
     Om = np.arange(0., 1.2, 0.02)
     Oml = np.arange(0., 1.2, 0.02)
     bbox = [0.,1.2, 0., 1.2]
-    int_tab_file_name = 'dL_int_tab_740x60x60.npy'
+    int_tab_file_name = data_dir+'dL_int_tab_740x60x60.npy'
 
     print("initializing the interpolation tables. This will take a few seconds...")
-    intsp = dL_init(zCMB, zhel, Om, Oml, bbox, int_tab_file_name)
-    print("done.")
     
+    intsp = dL_init(zCMB, zhel, Om, Oml, bbox, int_tab_file_name)
+        
     args = [dobs, covobs, zCMB, cH0, intsp, mst, emst, dset, anames]
  
     print("will sample %d active parameters of the total %d parameters"%(ndim, np.size(xmod)))
     print("active indices:", np.arange(np.size(xmod))[ia])
     print("initial values:", x0)
     print("initial scatter:", step)
-    print(anames)
-    
+    print(anames)    
     nwalkers = 10
 
     pp = np.vstack([x0 + np.random.normal(scale=step, size=len(x0))
@@ -352,4 +358,5 @@ if __name__ == '__main__':
     pos, prob, state = sampler.run_mcmc(pp, 2000)
 
     print("emcee sampled in ", clock()-t0, " seconds")
-    np.save('tests/chain_nozevo_scatter_nielsen_test.npy',sampler.flatchain)
+    np.save('pos_nielsen_test_emcee.npy', pos)
+    np.save('prob_nielsen_test_emcee.npy', prob)
