@@ -433,8 +433,8 @@ if __name__ == '__main__':
 
         print("sampled in ", clock()-t0, " seconds")
 
-        np.save('pos_zevo_all_nielsen_test_us.npy', pos)
-        np.save('weights_zevo_all_nielsen_test_us.npy', weights)
-        np.save('prob_zevo_all_nielsen_test_us.npy', prob)
+        np.save('pos_nielsen_3par_us.npy', pos)
+        np.save('weights_nielsen_3par_us.npy', weights)
+        np.save('prob_nielsen_3par_us.npy', prob)
 
     us.close_pools()
