@@ -534,10 +534,6 @@ class UmbrellaSampler:
                 
                 
         while (steps < tsteps) and ( currentgr > grstop  ):
-            print(steps, currentgr)
-            for i in range(10):
-                print(steps)
-            print("-----")
             if (self.us_pool):
                 self.us_pool.map( sample_window , list(zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) )) )
             else:
