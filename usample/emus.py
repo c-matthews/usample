@@ -3,10 +3,15 @@
 Container for the primary EMUS routines.
 """
 import numpy as np
-import linalg as lm
-import autocorrelation
-from usutils import unpackNbrs
-
+try:
+    import usample.linalg as lm
+    import usample.autocorrelation as autocorrelation
+    from .usutils import unpackNbrs
+except ImportError:
+    import linalg as lm
+    import autocorrelation as autocorrelation
+    from usutils import unpackNbrs
+    
 def calculate_obs(psis,z,f1data,f2data=None):
     """Estimates the value of an observable or ratio of observables.
 
@@ -133,7 +138,7 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-8,use_iats=False,iat_method
  
 
     # we perform the self-consistent polishing iteration
-    for n in xrange(nMBAR): 
+    for n in range(nMBAR): 
         z_old = z
         z_old[ z_old<1e-15 ] = 1e-15
         Apart = Npnts/z_old
@@ -192,7 +197,7 @@ def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='
     if neighbors is None:
         neighbors = np.outer(np.ones(L),range(L)).astype(int)
         
-    for i in xrange(L):
+    for i in range(L):
         nbrs_i = neighbors[i]
         A_nbs = Avals[i][nbrs_i]
         nbr_index = list(nbrs_i).index(i)
@@ -257,7 +262,7 @@ def calculate_Fi(psi_i, i, Avals_i=None, return_trajs=False):
 
     if return_trajs:
         trajs = np.zeros(psi_i.shape)
-    for j in xrange(L):
+    for j in range(L):
         Ftraj = psi_i[:,j]/denom # traj \psi_j/{\sum_k \psi_k A_k}
         Fi[j] = np.average(Ftraj)
         Fi[j] *= Avals_i[i]

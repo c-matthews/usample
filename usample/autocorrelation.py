@@ -9,7 +9,7 @@ def autocorrfxn(timeseries,lagmax):
     ts -= np.average(ts) # Set to mean 0
     N = len(timeseries)
     corrfxn = np.zeros(lagmax)
-    for dt in xrange(lagmax):
+    for dt in range(lagmax):
         corrfxn[dt] = (np.dot(timeseries[0:N-dt],timeseries[dt:N])) # sum of ts[t+dt]*ts[t]
     
     if (corrfxn[0]>0):
@@ -34,7 +34,7 @@ def ipce(timeseries,lagmax=None):
     while i < 0.5*lagmax-1:
         gamma =  corrfxn[2*i] + corrfxn[2*i+1]
         if gamma < 0.0:
-#            print 'stop at ',2*i
+#            print('stop at %d'%(2*i))
             break
         else:
             t += gamma 
@@ -69,7 +69,7 @@ def icce(timeseries,lagmax=None):
     while i < 0.5*lagmax-2:
         gammafuture =  corrfxn[2*i+2] + corrfxn[2*i+3]
         if gamma > 0.5*(gammapast+gammafuture) :
-            print 'stop at ',2*i
+            print('stop at %d'%(2*i))
             break
         else:
             t += gamma 
@@ -101,10 +101,10 @@ def _get_iat_method(iatmethod):
         from acor import acor
         iatroutine = acor
     elif iatmethod == 'ipce':
-        from autocorrelation import ipce
+        from .autocorrelation import ipce
         iatroutine = ipce
     elif iatmethod == 'icce':
-        from autocorrelation import icce
+        from .autocorrelation import icce
         iatroutine = icce
     return iatroutine
 

@@ -3,11 +3,14 @@ Umbrella sampling wrapper, making heavy use of the original EMUS code.
 """
 import numpy as np
 import random
-import emus 
-
-from umbrella import Umbrella
-from makecv import get_ic
-
+try:
+    import usample.emus as emus
+    from .umbrella import Umbrella
+    from .makecv import get_ic
+except ImportError:
+    import emus
+    from umbrella import Umbrella
+    from makecv import get_ic
 
 def sample_window(z):     
     """
@@ -169,8 +172,12 @@ class UmbrellaSampler:
         
         self.mpi = mpi 
         self.us_pool = None
+        
         if (mpi):
-            import mpi_pool
+            try:
+                import usample.mpi_pool as mpi_pool
+            except ImportError:
+                import mpi_pool
             from mpi4py import MPI 
             self.MPI = MPI 
             self.mpi_pool = mpi_pool
@@ -285,15 +292,15 @@ class UmbrellaSampler:
              
         if (self.debug):
             if (self.is_master() ):
-                print "    [d]: Total windows: " + str( nwin )
+                print("    [d]: Total windows: %s"%(str( nwin )))
                 if (len(temperatures)>1):
-                    print "    [d]: Temperatures: " + str( temperatures ) #[float("%.2f" % elem) for elem in temperatures] )
+                    print("    [d]: Temperatures: %s"%(str( temperatures )))
                 if (len(centers)>1):
-                    print "    [d]: Centers: " + str( centers ) # [float("%.2f" % elem) for elem in centers] )
-                    print "    [d]: Sigmas: " + str( np.array(sigmas) ) #[float("%.2f" % elem) for elem in sigmas] )
+                    print("    [d]: Centers: %s"%(str( centers ))) 
+                    print("    [d]: Sigmas: %s"%(str( np.array(sigmas))))
                     
                 if (self.mpi):
-                    print "    [d]: Cores distributed as " + str( self.wranks )
+                    print("    [d]: Cores distributed as %s"%(str( self.wranks )))
                      
     
     def add_umbrella(self , ic , numwalkers , sampler=None, comm=None, ranks=None, temp=None, center=None, cvfn=None,sigma=0, samplerargs={} ):
@@ -425,13 +432,13 @@ class UmbrellaSampler:
         
         
         if (self.us_pool):
-            states = self.us_pool.map( push_states , zip( range(0,len(self.wlist)) , states )  )
+            states = self.us_pool.map( push_states , list(zip( range(0,len(self.wlist)) , states ))  )
         else:
-            states = map( push_states , zip( range(0,len(self.wlist)) , states )  )
+            states = map( push_states , list(zip( range(0,len(self.wlist)) , states ))  )
             
         if (self.debug):
             accrate = accepts / (1.0*attempts)
-            print "    [d]: Repex summary (" + str(int(10000*accrate )/100.0) + "%):" + str( svec )
+            print("    [d]: Repex summary (%s %%):  %s"%(str(int(10000*accrate )/100.0), str( svec )))
             
     
     def get_gr(self):
@@ -527,21 +534,24 @@ class UmbrellaSampler:
                 
                 
         while (steps < tsteps) and ( currentgr > grstop  ):
-            
+            print(steps, currentgr)
+            for i in range(10):
+                print(steps)
+            print("-----")
             if (self.us_pool):
-                self.us_pool.map( sample_window , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
+                self.us_pool.map( sample_window , list(zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) )) )
             else:
-                map( sample_window , zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) ) )
+                map( sample_window , list(zip( range(0,len(self.wlist)) , [freq]*len(self.wlist), [thin]*len(self.wlist) )) )
             
             
             steps += freq
             if (self.debug and output_weights):
-                print " :- Completed " + str(steps) + " of " + str(tsteps) + " iterations."
+                print(" :- Completed %s of %s iterations."%(str(steps), str(tsteps)))
               
             currentgr = np.max( self.get_gr() ) 
             if (self.debug):
-                print "    [d]: max gr: " + str( currentgr )
-            
+                print("    [d]: max gr: %s"%str( currentgr )
+)            
             self.run_repex( repex )
             
             
@@ -562,7 +572,7 @@ class UmbrellaSampler:
 
         if (self.us_pool):
             Traj = self.us_pool.map( gather_traj ,  range(0,len(self.wlist))   )
-            map( push_traj , zip( range(0,len(self.wlist)) , Traj ) )
+            map( push_traj , list(zip( range(0,len(self.wlist)) , Traj )) )
             if (not self.staticpool):
                 self.us_pool.close()
             
@@ -571,7 +581,7 @@ class UmbrellaSampler:
         self.solve_emus( self.evsolves )
         
         if (self.debug):
-            print "    [d]: z values " + str( self.z )
+            print("    [d]: z values %s"%str( self.z ))
             
         
         pos = np.zeros( (np.shape( self.wlist[0].traj_pos)[0] , 0 , np.shape( self.wlist[0].traj_pos)[2] ) )
@@ -608,8 +618,8 @@ class UmbrellaSampler:
         burnmask = np.reshape( burnmask , (ts[0]*ts[1],1) )
         
         if (self.debug  ):
-            print "    [d]: Acor values " + str( [float("%.2f" % elem) for elem in self.zacor] )
-            print "    [d]: Percentage burned: " + str(100 - 100.0 * np.sum(burnmask) / np.size(burnmask) ) + "%, (" + str( int(np.sum(1-burnmask) )) + " of " + str(np.size(burnmask)) + ")"
+            print("    [d]: Acor values %s"%(str( [float("%.2f" % elem) for elem in self.zacor] )))
+            print("    [d]: Percentage burned: %s %% %s of %s )"%(str(100 - 100.0 * np.sum(burnmask) / np.size(burnmask) ), str( int(np.sum(1-burnmask) )), str(np.size(burnmask))))
         
         wgt = np.zeros(  (len(prob) , 0 ) )
         widx = 0
@@ -628,7 +638,7 @@ class UmbrellaSampler:
             wgt = np.append(wgt ,  myres - np.log( self.z[widx] ), axis=1)
             widx+=1
         
-        print "    [d]: Number cut= " + str( cutvals )
+        print("    [d]: Number cut= %s"%str( cutvals ))
         
         
         # Requires numpy 1.7+
@@ -695,7 +705,7 @@ class UmbrellaSampler:
         AP = []
         starts = []
         if (self.debug):
-            print "    [d]: winpsi=", self.maxpsi
+            print("    [d]: winpsi=%s"%self.maxpsi)
         
         for ii in range(NW):
              

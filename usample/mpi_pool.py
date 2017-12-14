@@ -24,9 +24,9 @@ class MPIPool(object):
             raise RuntimeError("MPI environment not found!")
 
         if comm==None:
-		self.comm = MPI.COMM_WORLD
-	else:
-		self.comm=comm
+            self.comm = MPI.COMM_WORLD
+        else:
+            self.comm=comm
         self.rank = self.comm.Get_rank()
         self.size = self.comm.Get_size()
         self.debug = debug

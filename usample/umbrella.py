@@ -3,8 +3,12 @@
 Class object for each individual umbrella.
 """
 import numpy as np 
-from gr import get_gr 
-from makecv import get_cv
+try:
+    from .gr import get_gr 
+    from .makecv import get_cv
+except ImportError:
+    from gr import get_gr
+    from makecv import get_cv
 import copy
 
 def g_lnprob(p , lpf , biasinfo, lpfargs, lpfkwargs): 
@@ -191,9 +195,11 @@ class Umbrella:
         self.pool = None
             
         if not comm==None:
-            from mpi4py import MPI 
-            import mpi_pool
-
+            from mpi4py import MPI
+            try:
+                import usample.mpi_pool as mpi_pool
+            except ImportError:
+                import mpi_pool
             if MPI.COMM_WORLD.Get_rank() in ranks:
                 self.pool = mpi_pool.MPIPool( comm=comm )
                 self.pool.map( initiate_pool , range(  self.pool.size ) )

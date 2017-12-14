@@ -60,7 +60,6 @@ def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
     nbrs = []
     for i,cntr_i in enumerate(centers):
         rad_i = rad[i]
-#        print rad_i
         nbrs_i = []
         for j, cntr_j in enumerate(centers):
             rv = cntr_j-cntr_i
@@ -68,7 +67,6 @@ def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
                 for compi, component in enumerate(rv):
                     if (period[compi] is not 0.0) or (period[compi] is not None):
                         rv[compi] = _minimage(component,period[compi])
-#            print cntr_j, cntr_i, rv
             if (np.abs(rv) < rad_i).all():
                 nbrs_i.append(j)
         nbrs.append(nbrs_i)
@@ -182,7 +180,7 @@ def calc_harmonic_psis(cv_traj, centers, fks, kTs, period = None):
         fks = fks*np.ones(np.shape(centers))
 
     psis = np.zeros((len(cv_traj),L))
-    for j in xrange(L):
+    for j in range(L):
         psis[:,j] = get_psis_harmwin(cv_traj,centers[j],fks[j],kTs[j],period=period)
     return psis
 
@@ -226,7 +224,7 @@ def get_psis_harmwin(cv_traj,win_center,win_fk,kT=1.0,period=None):
 
     elif len(np.shape(cv_traj)) == 2: # 2D trajectory array provided
         if period is not None:
-            for d in xrange(ndim):
+            for d in range(ndim):
                 p = period[d]
                 if (p is not None) and (p != 0):
                     rvmin[:,d]-= p*np.rint(rvmin[:,d]/p)

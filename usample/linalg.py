@@ -44,7 +44,7 @@ def stationary_distrib(F,residtol = 1.E-10,max_iter=100):
     z=q[:,-1] # Stationary dist. is last column of QR fact
     z/=np.sum(z) # Normalize Trajectory 
     # Polish solution using power method.
-    for itr in xrange(max_iter):
+    for itr in range(max_iter):
         znew = np.dot(z,F)
         tv = np.abs(znew[ z>0 ] - z[ z>0 ]) 
         tv = tv/z[z > 0 ]
@@ -72,7 +72,7 @@ def old_stationary_distrib(F,fix=None,residtol = 1.E-10,max_iter=100):
     z = solve(ImFt,Fi)  # Partition fxns of the other states.
     z = np.insert(z,fix,1.0) # Put the state we fixed to 1. back in
     # Polish solution using power method.
-    for itr in xrange(max_iter):
+    for itr in range(max_iter):
         znew = np.dot(z,F)
         maxresid = np.max(np.abs(znew - z)/z) # Convergence Criterion 
         if maxresid < residtol:

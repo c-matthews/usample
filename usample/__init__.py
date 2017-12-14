@@ -7,7 +7,16 @@ __license__ = "GNU GPL3"
 __maintainer__ = "C Matthews"
 __email__ = "c.matthews@uchicago.edu"
 
-from usample import UmbrellaSampler
-from umbrella import Umbrella
+from .usample import UmbrellaSampler
+from .umbrella import Umbrella
+#try:
+#        from .usample import UmbrellaSampler
+#        from .umbrella import Umbrella
+#except ImportError:
+#        from usample import UmbrellaSampler
+#        from umbrella import Umbrella
+            
+
+
 
 
