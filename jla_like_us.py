@@ -12,7 +12,6 @@
 #    The Nielsen et al. likelihood is modified to allow for the evolution of the
 #    mean color correction (eta_c) and stretch (eta_x)
 #
-from __future__ import absolute_import
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve, block_diag
 from scipy import interpolate as intp
@@ -164,7 +163,7 @@ def sn_like_walk(xw, dobs, covobs, zCMB, cH0, intsp,
     
     the following parameters are to be passed in the args vector: 
     
-    dobs: vecotr of floats
+    dobs: vector of floats
         vector of size 3*Nsn containing m_B, x1, and c values for each SN
     covobs: 2d array of floats
         observational covariance matrix of the JLA dataset of size 3Nsn x 3Nsn
@@ -218,10 +217,11 @@ def sn_like_walk(xw, dobs, covobs, zCMB, cH0, intsp,
     dobsd[:] = dobs[:]
     prefact0 =  -0.5*np.log(2*np.pi) * Nobs
     prior = 0.0
+    #print("in like", xw, anames)
     for ip, name in enumerate(anames):
         kwargs[name] = xw[ip]
         prior += priors(xw[ip], name)
-               
+         
     if prior <= -1.e8:
         return -1.e9
     else:
@@ -234,7 +234,7 @@ def sn_like_walk(xw, dobs, covobs, zCMB, cH0, intsp,
         
         # compute distance modulus for the current cosmology
         mu   = mu_model(zCMB, Om0, OL0, cH0, intsp)
-                
+ 
         # set up covariance matrix using current parameter values
         vM0 = sM0*sM0; vx1 = sx1*sx1; vc = sc*sc
         block3 = np.array( [[vM0 + vx1*alfa**2 + vc*beta**2, -vx1*alfa, vc*beta], 
@@ -253,7 +253,7 @@ def sn_like_walk(xw, dobs, covobs, zCMB, cH0, intsp,
         dm = dobsd - Y0
         prefact =  prefact0 - np.sum( np.log( np.diag( chol_fac[0] ) ) )
         like = prefact - 0.5 * np.dot(dm, cho_solve(chol_fac,dm)) + prior 
-        
+
     return like
 
 def read_jla_data(sn_list_name = None, cov_mat_dir = None, covhost=False, cohlens=False):
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     from time import clock
 
     if len(sys.argv) > 1:
-        print("will assume that SN data is in the directory %s"%sys.argv[1])
+        #print("will assume that SN data is in the directory %s"%sys.argv[1])
         data_dir = sys.argv[1]
     else:
         print("path to data directory is not provided")
@@ -351,7 +351,7 @@ if __name__ == '__main__':
     ipar_active = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1])
 
     # construct dictionary of parameters 
-    kwargs = dict(zip(names, xmod))
+    kwargs = dict(list(zip(names, xmod)))
 
     # extract the active parameter vector
     ia = (ipar_active==1)
@@ -381,9 +381,9 @@ if __name__ == '__main__':
     int_tab_file_name = data_dir+'dL_int_tab_740x60x60.npy'
 
     print("initializing the interpolation tables. This will take a few seconds...")
-    intsp = dL_init(zCMB, zhel, Om, Oml, bbox, int_tab_file_name)
-    print("done.")
     
+    intsp = dL_init(zCMB, zhel, Om, Oml, bbox, int_tab_file_name)
+        
     args = [dobs, covobs, zCMB, cH0, intsp, mst, emst, dset, anames]
  
     print("will sample %d active parameters of the total %d parameters"%(ndim, np.size(xmod)))
@@ -416,13 +416,14 @@ if __name__ == '__main__':
 
     us.add_umbrellas( temperatures=temps , numwalkers=nwalkers , ic=x0 , sampler=emcee.EnsembleSampler )
 
-    # 
+
+    #
     # Then run for 1000 steps in each window.
     # Output stats every [freq] steps
     # Try to replica exchange [repex]-many walkers every [freq] steps
     #
 
-    pos, weights, prob = us.run(10000 , freq=10, repex=10)
+    pos, weights, prob = us.run(500 , freq=10, repex=10)
 
     #
     # save the output
@@ -431,7 +432,9 @@ if __name__ == '__main__':
     if (us.is_master() ):
 
         print("sampled in ", clock()-t0, " seconds")
-        x = np.append( pos , weights , axis=1 )
-        x = np.append( x , prob , axis=1 )
-    
-        np.save('chain_nozevo_scatter_nielsen_test_us.npy', x)
+
+        np.save('pos_zevo_all_nielsen_test_us.npy', pos)
+        np.save('weights_zevo_all_nielsen_test_us.npy', weights)
+        np.save('prob_zevo_all_nielsen_test_us.npy', prob)
+
+    us.close_pools()
