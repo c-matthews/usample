@@ -5,7 +5,7 @@ A lightweight python implementation of the umbrella sampling method for use in e
 
 Companion article: Umbrella sampling: a powerful method to sample tails of distributions  
   Charles Matthews, Jonathan Weare, Andrey Kravtsov and Elise Jennings  
-  Available here: <https://arxiv.org/> (link forthcoming)
+  https://arxiv.org/abs/1712.05024
 
 ### Using the package
 
