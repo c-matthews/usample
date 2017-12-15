@@ -19,7 +19,7 @@ Example of how to sample a 2D Gaussian pdf is also available in <a href="https:/
 
 Example of how to sample posterior of the matter and vacuum density + nuisance parameters from supernovae type Ia JLA v3 sample with umbrella sampling is provided in <a href="https://github.com/c-matthews/usample/blob/master/jla_like_us.py">jla_like_us.py</a>. This example uses umbrella sampling with temperature stratification using emcee sampler to sample distributions within each window. <tt>mpi4py</tt> is required to run this code and the supernova data, as described above.
 
-Before running this code you need to download SNIa data and pre-computed luminosity distance table packaged into a single archive. The data can be downloaded by running 'python download_sn_data.py datadir' where is directory into which you want to unpack the data. The code will download zip archive and will unpack it into subdirectory sn_data within the specified directory sn_data. 
+Before running this code you need to download SNIa data and pre-computed luminosity distance table packaged into a single archive. The data can be downloaded by running 'python download_sn_data.py datadir' where datadir is directory into which you want to unpack the data. The code will download zip archive and will unpack it into subdirectory sn_data within the specified directory sn_data. 
 
 Once data is downloaded, run the code as `mpirun python jla_like_us.py datadir`, where datafir is path to the directory with downloaded JLA SN data. 
 
