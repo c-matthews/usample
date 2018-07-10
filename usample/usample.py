@@ -344,6 +344,17 @@ class UmbrellaSampler:
             A list of floats corresponding to the relative weight of each window.
         """        
         return self.z
+    
+    def get_f(self):
+        """
+            Returns the F weighting matrix.
+            
+            Returns
+            -------
+            F : array
+            The array of weights used in the eigenvector method for Umbrella Sampling.
+            """
+        return self.F
           
             
     def run_repex(self, nrx):
@@ -621,20 +632,20 @@ class UmbrellaSampler:
         widx = 0
         # <f> = < f  /  (\sum \psi_i / z_i ) >
         
-        cutvals = np.zeros( len( self.wlist ) )
+        #cutvals = np.zeros( len( self.wlist ) )
         
         for w in self.wlist:
          
-            myres = w.get_bias( pos.T , prob )  - self.maxpsi[widx]
-            cutvals[widx] = np.sum( myres.flatten()>self.logpsicutoff )
-            myres = np.fmin( myres , self.logpsicutoff )
+            myres = w.get_bias( pos.T , prob )
+            #cutvals[widx] = np.sum( myres.flatten()>self.logpsicutoff )
+            #myres = np.fmin( myres , self.logpsicutoff )
             if (myres.ndim==1):
                 myres = np.expand_dims( myres , axis=1 )
                 
             wgt = np.append(wgt ,  myres - np.log( self.z[widx] ), axis=1)
             widx+=1
         
-        print("    [d]: Number cut= %s"%str( cutvals ))
+        #print("    [d]: Number cut= %s"%str( cutvals ))
         
         
         # Requires numpy 1.7+
@@ -700,8 +711,8 @@ class UmbrellaSampler:
         
         AP = []
         starts = []
-        if (self.debug):
-            print("    [d]: winpsi=%s"%self.maxpsi)
+            #if (self.debug):
+            #print("    [d]: winpsi=%s"%self.maxpsi)
         
         for ii in range(NW):
              

@@ -102,14 +102,14 @@ def calculate_pmf(cv_trajs, psis, domain, z, nbins = 100,kT=1.):
     # Calculate the centers of each histogram bin.
     return pmf
 
-def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-8,use_iats=False,iat_method='ipce'):
+def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-15,use_iats=False,iat_method='ipce'):
     """Calculates the normalization constants for the states.
 
     Parameters
     ----------
     nMBAR : int, optional (default 0)
          Maximum number of MBAR iterations to perform.
-    tol : float, optional (default 1.0E-8)
+    tol : float, optional (default 1.0E-15)
         If the relative residual falls beneath the tolerance, the MBAR iteration is truncated.
     use_iats : bool, optional
         If true, estimate integrated autocorrelation time in each MBAR iteration.  Likely unnecessary unless dynamics are expected to be drastically different in each state. If iats is provided, the iteration will use those rather than estimating them in each step.
@@ -140,8 +140,8 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-8,use_iats=False,iat_method
 
     # we perform the self-consistent polishing iteration
     for n in range(nMBAR): 
-        z_old = z
-        z_old[ z_old<1e-15 ] = 1e-15
+        z_old = np.copy(z)
+        z_old[ z_old<1e-100 ] = 1e-100
         Apart = Npnts/z_old
         Amat = np.outer(np.ones(L),Apart)
         Amat /= np.outer(np.ones(L),iats)
