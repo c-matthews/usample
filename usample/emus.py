@@ -3,6 +3,7 @@
 Container for the primary EMUS routines.
 """
 import numpy as np
+from scipy.misc import logsumexp
 try:
     import usample.linalg as lm
     import usample.autocorrelation as autocorrelation
@@ -258,13 +259,15 @@ def calculate_Fi(psi_i, i, Avals_i=None, return_trajs=False):
      
     psi_i = np.array(psi_i)
     denom = np.dot(psi_i,Avals_i)
-    
+    lse = logsumexp( psi_i,axis=1,b=Avals_i)
 
     if return_trajs:
         trajs = np.zeros(psi_i.shape)
     for j in range(L):
-        Ftraj = psi_i[:,j]/denom # traj \psi_j/{\sum_k \psi_k A_k}
-        Fi[j] = np.average(Ftraj)
+        Ftraj = psi_i[:,j] - lse
+        Fi[j] = np.exp( logsumexp(Ftraj) - np.log(len(Ftraj)))
+        #Ftraj = psi_i[:,j]/denom # traj \psi_j/{\sum_k \psi_k A_k}
+        #Fi[j] = np.average(Ftraj)
         Fi[j] *= Avals_i[i]
         if return_trajs:
             trajs[:,j] = Ftraj

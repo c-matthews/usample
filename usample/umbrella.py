@@ -38,6 +38,7 @@ def g_lnprob(p , lpf , biasinfo, lpfargs, lpfkwargs):
         bias = g_get_bias( p , L , biasinfo )
     else:
         bias = 0
+        L = -np.inf
       
     return (L + bias, bias)
 

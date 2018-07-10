@@ -689,14 +689,14 @@ class UmbrellaSampler:
 
         self.maxpsi = np.zeros( NW ) 
 
-        for jj in range(NW):
+#if (0): #for jj in range(NW):
  
-            zz = AvgPsi[:,:,jj].flatten()
-            kk = np.isfinite(zz)
-            self.maxpsi[jj] = np.min( zz[kk] )
-            AvgPsi[:,:,jj] = AvgPsi[:,:,jj] - self.maxpsi[jj]
+ #zz = AvgPsi[:,:,jj].flatten()
+ #kk = np.isfinite(zz)
+ #self.maxpsi[jj] = np.min( zz[kk] )
+ #AvgPsi[:,:,jj] = AvgPsi[:,:,jj] - self.maxpsi[jj]
                 
-        AvgPsi = np.fmin( AvgPsi , self.logpsicutoff )
+        #AvgPsi = np.fmin( AvgPsi , self.logpsicutoff )
         
         AP = []
         starts = []
@@ -718,12 +718,13 @@ class UmbrellaSampler:
             zz = AvgPsi[ii,(st):,:]
             zz = zz.squeeze()
             
-            AP.append( np.exp( zz ) )
+            #AP.append( np.exp( zz ) )
+            AP.append(  zz )
             
             starts.append( st )
         
         
-        self.AvgPsi = np.exp( AvgPsi )
+        #self.AvgPsi = np.exp( AvgPsi )
         
         self.AvgPsi = AP
         starts = np.array(starts) / Nwalkers
