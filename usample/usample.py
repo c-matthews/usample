@@ -626,7 +626,7 @@ class UmbrellaSampler:
         
         if (self.debug  ):
             print("    [d]: Acor values %s"%(str( [float("%.2f" % elem) for elem in self.zacor] )))
-            print("    [d]: Percentage burned: %s %% %s of %s )"%(str(100 - 100.0 * np.sum(burnmask) / np.size(burnmask) ), str( int(np.sum(1-burnmask) )), str(np.size(burnmask))))
+            print("    [d]: Percentage burned: %s %% (%s of %s )"%(str(100 - 100.0 * np.sum(burnmask) / np.size(burnmask) ), str( int(np.sum(1-burnmask) )), str(np.size(burnmask))))
         
         wgt = np.zeros(  (len(prob) , 0 ) )
         widx = 0
