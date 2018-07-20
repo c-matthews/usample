@@ -130,7 +130,7 @@ class UmbrellaSampler:
     """
     A class container with helper functions for using the umbrella sampling method.
     """ 
-    def __init__(self, lpf, lpfargs=[],lpfkwargs={} , debug=False, evsolves=3, mpi=False, burn_pc=0.1, burn_acor=0, logpsicutoff=700):
+    def __init__(self, lpf, lpfargs=[],lpfkwargs={} , debug=False, evsolves=3, mpi=False, burn_pc=0, burn_acor=0, logpsicutoff=700):
         """
         Initializer for the umbrella sampler class.
 
@@ -700,12 +700,12 @@ class UmbrellaSampler:
 
         self.maxpsi = np.zeros( NW ) 
 
-#if (0): #for jj in range(NW):
+        for jj in range(NW):
  
- #zz = AvgPsi[:,:,jj].flatten()
- #kk = np.isfinite(zz)
- #self.maxpsi[jj] = np.min( zz[kk] )
- #AvgPsi[:,:,jj] = AvgPsi[:,:,jj] - self.maxpsi[jj]
+            zz = AvgPsi[:,:,jj].flatten()
+            kk = np.isfinite(zz)
+            self.maxpsi[jj] = np.min( zz[kk] )
+            AvgPsi[:,:,jj] = AvgPsi[:,:,jj] - self.maxpsi[jj]
                 
         #AvgPsi = np.fmin( AvgPsi , self.logpsicutoff )
         
@@ -720,10 +720,13 @@ class UmbrellaSampler:
             st = int( self.burn_acor * self.zacor[ii]  * Nwalkers )
             
             
-            if (st>=int(self.burn_pc*NS)):
+            if (st<=int(self.burn_pc*NS)):
                 st = int(self.burn_pc*NS)
             if (st<0):
                 st=0
+            if (st>NS/2):
+                st=NS/2
+                            
                 
             
             zz = AvgPsi[ii,(st):,:]
@@ -767,6 +770,10 @@ class UmbrellaSampler:
         AvgPsi = self.get_avg_psi()
         
         self.z , self.F = emus.calculate_zs( AvgPsi, nMBAR=evsolves )
+        
+        self.z *=  np.exp(self.maxpsi)
+        self.z /= np.sum(self.z)
+        
         
         return self.z, self.F
     
