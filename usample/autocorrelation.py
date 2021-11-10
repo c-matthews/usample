@@ -11,7 +11,7 @@ def autocorrfxn(timeseries,lagmax):
     corrfxn = np.zeros(lagmax)
     for dt in range(lagmax):
         corrfxn[dt] = (np.dot(timeseries[0:N-dt],timeseries[dt:N])) # sum of ts[t+dt]*ts[t]
-    
+
     if (corrfxn[0]>0):
         corrfxn /= corrfxn[0] # Normalize
     return corrfxn
@@ -30,14 +30,14 @@ def ipce(timeseries,lagmax=None):
     corrfxn = autocorrfxn(timeseries,lagmax)
     i = 0
     t = 0
-    
+
     while i < 0.5*lagmax-1:
         gamma =  corrfxn[2*i] + corrfxn[2*i+1]
         if gamma < 0.0:
 #            print('stop at %d'%(2*i))
             break
         else:
-            t += gamma 
+            t += gamma
         i += 1
     tau = 2*t - 1
     var = np.var(timeseries)
@@ -53,7 +53,7 @@ def _cte(timeseries,maxcorr):
     sigma = np.sqrt(var * tau / len(timeseries))
     return tau, mean, sigma
 
-    
+
 def icce(timeseries,lagmax=None):
     """
     Initial convex correlation time estimator
@@ -72,7 +72,7 @@ def icce(timeseries,lagmax=None):
             print('stop at %d'%(2*i))
             break
         else:
-            t += gamma 
+            t += gamma
             gammapast = gamma
             gamma = gammafuture
         i += 1
@@ -90,7 +90,7 @@ def _get_iat_method(iatmethod):
     ----------
     iat_method : string, optional
         Routine to use for calculating said iats.  Accepts 'ipce', 'acor', and 'icce'.
-    
+
     Returns
     -------
     iatroutine : function
@@ -107,6 +107,3 @@ def _get_iat_method(iatmethod):
         from .autocorrelation import icce
         iatroutine = icce
     return iatroutine
-
-
-

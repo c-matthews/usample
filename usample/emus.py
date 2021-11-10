@@ -3,7 +3,10 @@
 Container for the primary EMUS routines.
 """
 import numpy as np
-from scipy.misc import logsumexp
+try:
+    from scipy.special import logsumexp
+except ImportError:
+    from scipy.misc import logsumexp
 try:
     import usample.linalg as lm
     import usample.autocorrelation as autocorrelation
@@ -12,7 +15,7 @@ except ImportError:
     import linalg as lm
     import autocorrelation as autocorrelation
     from usutils import unpackNbrs
-    
+
 def calculate_obs(psis,z,f1data,f2data=None):
     """Estimates the value of an observable or ratio of observables.
 
@@ -25,7 +28,7 @@ def calculate_obs(psis,z,f1data,f2data=None):
     f1data : 2D data structure
         Trajectory of observable in the numerator.  First dimension corresponds to the umbrella index and the second to the point in the trajectory.
     f2data : 2D data structure, optional
-        Trajectory of observable in the denominator.  
+        Trajectory of observable in the denominator.
 
     Returns
     -------
@@ -70,7 +73,7 @@ def calculate_pmf(cv_trajs, psis, domain, z, nbins = 100,kT=1.):
     pmf : nd array
         Returns the potential of mean force as a d dimensional array, where d is the number of collective variables.
 
-    """    
+    """
     if domain is None:
         raise NotImplementedError
 
@@ -81,7 +84,7 @@ def calculate_pmf(cv_trajs, psis, domain, z, nbins = 100,kT=1.):
     if type(nbins) is int: # Make nbins to an iterable in the 1d case.
         nbins = [nbins]*ndims
     domainwdth = domain[:,1] - domain[:,0]
-    
+
     # Calculate the PMF
     hist = np.zeros(nbins)
     for i,xtraj_i in enumerate(cv_trajs):
@@ -115,7 +118,7 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-15,use_iats=False,iat_metho
         If true, estimate integrated autocorrelation time in each MBAR iteration.  Likely unnecessary unless dynamics are expected to be drastically different in each state. If iats is provided, the iteration will use those rather than estimating them in each step.
     iat_method : string, optional
         Routine to use for calculating integrated autocorrelation times.  Currently accepts 'ipce', 'acor', and 'icce'.
-    
+
     Returns
     -------
     z : 1D array
@@ -127,19 +130,19 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-15,use_iats=False,iat_metho
 
     """
     L = len(psis) # Number of States
-    Npnts = np.array([len(psis_i) for psis_i in psis]) 
+    Npnts = np.array([len(psis_i) for psis_i in psis])
     Npnts = (1.0 * Npnts ) / np.max(Npnts)
-     
-    
+
+
     if use_iats:
         z,F,iats = emus_iter(psis,neighbors=neighbors,return_iats=use_iats,iat_method=iat_method)
     else:
         z,F = emus_iter(psis,neighbors=neighbors,return_iats=use_iats,iat_method=iat_method)
         iats = np.ones(z.shape)
- 
+
 
     # we perform the self-consistent polishing iteration
-    for n in range(nMBAR): 
+    for n in range(nMBAR):
         z_old = np.copy(z)
         z_old[ z_old<1e-100 ] = 1e-100
         Apart = Npnts/z_old
@@ -149,11 +152,11 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-15,use_iats=False,iat_metho
             z, F, iats = emus_iter(psis,Amat,neighbors=neighbors,return_iats=True,iat_method=iat_method)
         else:
             z, F = emus_iter(psis,Amat,neighbors=neighbors)
-        # Check if we have converged.	
+        # Check if we have converged.
 
         if np.max(np.abs(z-z_old)/z_old) < tol:
             break
-                            
+
     if use_iats:
         return z, F, iats
     else:
@@ -162,7 +165,7 @@ def calculate_zs(psis,neighbors=None,nMBAR=0,tol=1.E-15,use_iats=False,iat_metho
 
 def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='ipce'):
     """Performs one step of the the EMUS iteration.
-    
+
     Parameters
     ----------
     psis : 3D data structure
@@ -170,12 +173,12 @@ def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='
     Avals : 2D matrix, optional
         Weights in front of :math:`\psi` in the overlap matrix.
     neighbors : 2D array, optional
-        List showing which states neighbor which.  See neighbors_harmonic in usutils. 
+        List showing which states neighbor which.  See neighbors_harmonic in usutils.
     return_iats : bool, optional
         Whether or not to calculate integrated autocorrelation times of :math:`\psi_ii^*` for each window.
     iat_method : string, optional
         Routine to use for calculating said iats.  Accepts 'ipce', 'acor', and 'icce'.
-    
+
     Returns
     -------
     z : 1D array
@@ -185,7 +188,7 @@ def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='
     iats : 1D array
         If return_iats chosen, returns the iats that have been estimated.
     """
-    
+
     # Initialize variables
     L = len(psis) # Number of Windows
     F = np.zeros((L,L)) # Initialize F Matrix
@@ -197,7 +200,7 @@ def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='
         Avals = np.ones((L,L))
     if neighbors is None:
         neighbors = np.outer(np.ones(L),range(L)).astype(int)
-        
+
     for i in range(L):
         nbrs_i = neighbors[i]
         A_nbs = Avals[i][nbrs_i]
@@ -210,7 +213,7 @@ def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='
         else:
             Fi = Fi_out
         # Unpack the Neighbor list
-        F[i] = unpackNbrs(Fi,nbrs_i,L) 
+        F[i] = unpackNbrs(Fi,nbrs_i,L)
 
     z = lm.stationary_distrib(F)
 #    print F
@@ -223,27 +226,27 @@ def emus_iter(psis, Avals=None, neighbors=None, return_iats = False,iat_method='
 def calculate_Fi(psi_i, i, Avals_i=None, return_trajs=False):
     """
     Calculates the values of a single row in the F matrix.
-    If neighborlists are being used, psi_i, and Avals_i should be the 
+    If neighborlists are being used, psi_i, and Avals_i should be the
     neighborlisted data structure, and the row will be need to be unpacked
     using the neighborlist .
 
     Parameters
     ----------
         psi_i : 2D array-like
-            Values of :math:`\psi` collected in window i.  The j'th column 
+            Values of :math:`\psi` collected in window i.  The j'th column
             corresponds to the j'th neighboring window.
         i : int
             Index of the window where the data was collected.
         Avals_i : 1D array-like
             Weights in front of :math:`\psi_{ij} in the overlap matrix.
         return_trajs : bool, optional
-            Whether or not to return the trajectories that are averaged to 
-            calculate the values of F.  These can be useful for estimating 
+            Whether or not to return the trajectories that are averaged to
+            calculate the values of F.  These can be useful for estimating
             autocorrelation times and performing error analysis.
 
     Returns
     -------
-        Fi : 1D numpy array 
+        Fi : 1D numpy array
             The (neighborlisted) row in the F matrix
         trajs : 2D numpy array
             If return_trajs is True, returns the trajectories used in
@@ -256,7 +259,7 @@ def calculate_Fi(psi_i, i, Avals_i=None, return_trajs=False):
     # Take care of defaults
     if Avals_i is None:
         Avals_i = np.ones(L)
-     
+
     psi_i = np.array(psi_i)
     denom = np.dot(psi_i,Avals_i)
     lse = logsumexp( psi_i,axis=1,b=Avals_i)
@@ -275,8 +278,3 @@ def calculate_Fi(psi_i, i, Avals_i=None, return_trajs=False):
         return Fi, trajs
     else:
         return Fi
-    
-
-
-
-

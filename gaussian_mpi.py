@@ -2,13 +2,13 @@
 # Samples a 2d Gaussian using Umbrella sampling in the temperature (parallel version)
 #
 # Usage:
-# > mpirun -np N python gaussian.py
+# > mpirun -np N python -u gaussian.py
 # where "N" is the number of cores to run on, e.g. 4
 #
 
 import usample.usample
 import numpy as np
-import emcee 
+import emcee
 
 #
 # Sample a 2D Gaussian
@@ -18,16 +18,16 @@ import emcee
 
 
 def log_prob_fn(p , means , icov ):
-    
+
     pp = p - means
-    
+
     lpf = - 0.5 * np.dot(pp , np.dot( icov , pp ) )
-    
+
     return lpf
 
 #
-# Now create the umbrella sampler object 
-#  
+# Now create the umbrella sampler object
+#
 
 means = np.array([0.5,-0.25])
 
@@ -38,10 +38,10 @@ us = usample.UmbrellaSampler( log_prob_fn , lpfargs=[means,icov], mpi=True, debu
 
 #
 # Now add some umbrellas.
-# First, define some temperatures to run with. 
+# First, define some temperatures to run with.
 #
 
-temps = np.linspace( 1 , 10 , 8 ) 
+temps = np.linspace( 1 , 10 , 8 )
 
 #
 # Then add an umbrella at each temperature. Use four walkers, and give some initial conditions
@@ -50,7 +50,7 @@ temps = np.linspace( 1 , 10 , 8 )
 
 us.add_umbrellas( temperatures=temps , numwalkers=8 , ic=means , sampler=emcee.EnsembleSampler )
 
-# 
+#
 # Then run for 10000 steps in each window.
 # Output stats every [freq] steps
 # Try to replica exchange [repex]-many walkers every [freq] steps
@@ -63,7 +63,7 @@ pos,weights,prob = us.run(10000 , freq=1000, repex=10   )
 #
 
 if (us.is_master() ):
-    
+
     x = np.append( pos , weights , axis=1 )
     x = np.append( x , prob , axis=1 )
 
@@ -72,4 +72,3 @@ if (us.is_master() ):
 
 
 us.close_pools()
-

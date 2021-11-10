@@ -2,50 +2,52 @@
 # Samples a 2d double-well distribution using Umbrella sampling in the temperature (parallel version)
 #
 # Usage:
-# > mpirun -np N python gaussian.py
+# > mpirun -np N python -u doublewell_mpi.py
 # where "N" is the number of cores to run on, e.g. 4
 #
 
 import usample.usample
 import numpy as np
-import emcee 
+import emcee
 
 #
-# Sample a 2D Gaussian
+# Sample a 2D distribution of the sum of two Gaussians
 #
 # Define the log probability function:
 #
 
 
 def log_prob_fn(p ):
-    
+
     x=p[0]
     y=p[1]
-    
-    # Two Gaussian distributions, centered on +/- 1 
+
+    # Two Gaussian distributions, centered on +/- 1
     lpf = np.log( np.exp(-16*(x-1)**2) + np.exp(-16*(x+1)**2  ))
     # And an independent Gaussian in another direction
     lpf -= 0.5*y*y
-     
-    
-    return lpf 
+
+
+    return lpf
 
 #
-# Now create the umbrella sampler object 
+# Now create the umbrella sampler object
 us = usample.UmbrellaSampler( log_prob_fn  , mpi=True, debug=True,  burn_acor=20 )
 
 #
 # Build umbrellas along a line between two points: the two peaks of the distribution.
 # This line is a 1D "CV" or Collective Variable, embedded in the higher dimensions.
+# The CV runs from (-1,0) to (1,0)
 cvfn = ["line", [np.array([-1.0,0]), np.array([1.0,0])] ]
 
-# The start of the line is "0", and the end is "1".
-# We define the centers of the biasing distribution. Here we define four umbrellas:
-centers = np.linspace( 0 , 1 , 4 ) 
+# In the cv coordinates the start of the line is "0" and the end is "1".
+# We define the centers of the biasing distribution in the CVs.
+# Here we define the centers of the four umbrellas:
+centers = np.linspace( 0 , 1 , 4 )
 
 # We may also make use of sampling using different temperatures within a window.
 # Lets try sampling at a temperature of 1 and 5.
-temps = [1,5]  
+temps = [1,5]
 
 # Note that this gives a total of 4x2=8 umbrellas overall.
 # We are umbrella sampling in two directions:
@@ -59,14 +61,15 @@ temps = [1,5]
 # The usage looks like this:
 ##cvfn = ["grid", [np.array([-1.0,0]), np.array([1.0,0]), np.array([-1.0,1.0])] ]
 ##centers = [ [ii,jj] for ii in np.linspace( 0 , 1 , 3 ) for jj in np.linspace( 0 , 1 , 5 ) ]
-# Where "grid" takes three points, defining the 2D plane and the boundaries.
+# Where "grid" takes a list of three points [a,b,c] defining the 2D plane and the boundaries where
+# the first grid line is (a->b) and the second is (a->c). These two lines need not be perpendicular.
 #
 
 #
-# Once we have defined the umbrellas as above, we can add them all together using the following routine: 
+# Once we have defined the umbrellas as above, we run using the following routine:
 us.add_umbrellas( temperatures=temps, centers=centers, cvfn=cvfn , numwalkers=8 , ic=np.array([0,0]) , sampler=emcee.EnsembleSampler )
 
-# 
+#
 # Then run for 10000 steps in each window.
 # Output stats every [freq] steps
 # Try to replica exchange [repex]-many walkers every [freq] steps
@@ -79,7 +82,7 @@ pos,weights,prob = us.run(10000 , freq=100, repex=10    )
 #
 
 if (us.is_master() ):
-    
+
     x = np.append( pos , weights , axis=1 )
     x = np.append( x , prob , axis=1 )
 
@@ -88,4 +91,3 @@ if (us.is_master() ):
 
 
 us.close_pools()
-

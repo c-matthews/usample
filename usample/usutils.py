@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Module containing methods useful for analyzing umbrella sampling 
+"""Module containing methods useful for analyzing umbrella sampling
 calculations that do not rely directly on the EMUS estimator.
 
 """
 import numpy as np
 
 def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
-    """Calculates neighborlist for harmonic windows.  Neighbors are chosen 
+    """Calculates neighborlist for harmonic windows.  Neighbors are chosen
     such that neighboring umbrellas are no more than nsig standard
     deviations away on a flat potential.
 
@@ -17,9 +17,9 @@ def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
         first dimension is the window index, and the second
         is the collective variable index.
     fks : 2darray or scalar
-        If array or list, data structure where the first dimension 
+        If array or list, data structure where the first dimension
         corresponds to the window index and the second corresponds to the
-        collective variable.  If scalar, windows are assumed to have that 
+        collective variable.  If scalar, windows are assumed to have that
         force constant in every dimension.
     kTs : 2darray or float
         1D array with the Boltzmann factor or
@@ -27,20 +27,20 @@ def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
         value is the scalar 1.
     period : 1D array-like or float
         Period of the collective variable
-        e.g. 360 for an angle. If None, all collective variables are 
-        taken to be aperiodic.  If scalar, assumed to be period of each 
-        collective variable. If 1D iterable with each value a scalar or 
+        e.g. 360 for an angle. If None, all collective variables are
+        taken to be aperiodic.  If scalar, assumed to be period of each
+        collective variable. If 1D iterable with each value a scalar or
         None, each cv has periodicity of that size.
     nsig : scalar
-        Number of standard deviations of the gaussians to 
+        Number of standard deviations of the gaussians to
         include in the neighborlist.
 
     Returns
     -------
     nbrs : 2d list
-        List where element i is a list with the indices of all 
+        List where element i is a list with the indices of all
         windows neighboring window i.
-    
+
     FIX THIS!!!!!!!!!
     """
     L = len(centers) # Number of Windows
@@ -51,11 +51,11 @@ def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
     if not hasattr(fks,'__getitem__'): # Check if force constant is a scalar
         fks = fks*np.ones(np.shape(centers))
     kTs = np.outer(kTs,np.ones(np.shape(fks[0])))
-    rad = nsig*np.sqrt(kTs/fks) 
-    if period is not None: 
+    rad = nsig*np.sqrt(kTs/fks)
+    if period is not None:
         if not hasattr(period,'__getitem__'): # Check if period is scalar
             period = [period]
-    
+
     # Iterate through window centers and find neighboring umbrellas.
     nbrs = []
     for i,cntr_i in enumerate(centers):
@@ -65,7 +65,7 @@ def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
             rv = cntr_j-cntr_i
             if period is not None:
                 for compi, component in enumerate(rv):
-                    if (period[compi] is not 0.0) or (period[compi] is not None):
+                    if (period[compi] != 0.0) or (period[compi] is not None):
                         rv[compi] = _minimage(component,period[compi])
             if (np.abs(rv) < rad_i).all():
                 nbrs_i.append(j)
@@ -75,7 +75,7 @@ def neighbors_harmonic(centers,fks,kTs=1.,period=None,nsig=4):
 def unpackNbrs(compd_array,neighbors,L):
     """Unpacks an array of neighborlisted data.  Currently, assumes axis 0
     is the compressed axis.
-    
+
     Parameters
     ----------
     compd_array : array-like
@@ -139,7 +139,7 @@ def data_from_WHAMmeta(filepath,dim,T=None,k_B=1.9872041E-3,period=None):
     # Load in the trajectories into the cv space
     trajs = []
     for i, trajloc in enumerate(trajlocs):
-        trajs.append(np.loadtxt(trajloc)[:,1:]) 
+        trajs.append(np.loadtxt(trajloc)[:,1:])
 
     # Calculate psi values
     psis = []
@@ -149,7 +149,7 @@ def data_from_WHAMmeta(filepath,dim,T=None,k_B=1.9872041E-3,period=None):
 
     return psis, trajs
 
-    
+
 def calc_harmonic_psis(cv_traj, centers, fks, kTs, period = None):
     """Calculates the values of each bias function from a trajectory of points
     in a single state.
@@ -157,7 +157,7 @@ def calc_harmonic_psis(cv_traj, centers, fks, kTs, period = None):
     Parameters
     ----------
     cv_traj : array-like
-        Trajectory in collective variable space.  Can be 1-dimensional (one cv) or 2-dimensional (many cvs).  The first dimension is the time index, and (optional) second corresponds to the collective variable. 
+        Trajectory in collective variable space.  Can be 1-dimensional (one cv) or 2-dimensional (many cvs).  The first dimension is the time index, and (optional) second corresponds to the collective variable.
     centers : array-like
         The locations of the centers of each window.  The first dimension is the window index, and the (optional) second is the collective variable index.
     fks : scalar or 2darray
@@ -171,7 +171,7 @@ def calc_harmonic_psis(cv_traj, centers, fks, kTs, period = None):
     -------
     psis : 2D array
         The values of the bias functions at each point in the trajectory evaluated at the windows given.  First axis corresponds to the timepoint, the second to the window index.
-            
+
     """
     L = len(centers) # Number of windows
     if not hasattr(kTs,'__getitem__'): # Check if kTs is a scalar
@@ -191,13 +191,13 @@ def get_psis_harmwin(cv_traj,win_center,win_fk,kT=1.0,period=None):
     Parameters
     ----------
     cv_traj : array-like
-        Trajectory in collective variable space.  Can be 1-dimensional (one cv) or 2-dimensional (many cvs).  The first dimension is the time index, and (optional) second corresponds to the collective variable. 
+        Trajectory in collective variable space.  Can be 1-dimensional (one cv) or 2-dimensional (many cvs).  The first dimension is the time index, and (optional) second corresponds to the collective variable.
         trajectory
     win_center : array-like or scalar
         Array of the centers of the window.
-    win_fk : array-like or scalar 
+    win_fk : array-like or scalar
         Force constants for the windows divided by -kT.
-    period : 1D array-like or float, optional 
+    period : 1D array-like or float, optional
         Period of the collective variables.  See documentation for calc_harmonic_psis.
 
     Returns
@@ -259,9 +259,9 @@ def parse_metafile(filepath,dim):
     fks : 2D array of floats
         Array with the force constants for each harmonic window. See calc_harm_psis for syntax.
     iats : 1D array of floats or None
-        Array with the integrated autocorrelation times of each window.  None if not given in 
+        Array with the integrated autocorrelation times of each window.  None if not given in
         the meta file
-    temps : 1D array of floats or None 
+    temps : 1D array of floats or None
         Array with the temperature of each window in the umbrella sampling calculation.  If not given in the meta file, this will just be None.
 
     """
@@ -304,4 +304,3 @@ def _minimage(rv,period):
 
     """
     return rv - period * np.rint(rv/period)
-
